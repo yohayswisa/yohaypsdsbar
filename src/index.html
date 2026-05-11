@@ -489,23 +489,35 @@
             modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
             ownerPanel.style.display = 'block';
 
+            let initialLoadDone = false;
+
             onValue(barRef, (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    followersCountInput.value = data.followersCount || 0;
-                    followersTextInput.value = data.followersText || '';
-                    likesCountInput.value = data.likesCount || 0;
-                    likesTextInput.value = data.likesText || '';
                     updateDisplay(data);
+                    if (!initialLoadDone) {
+                        followersCountInput.value = data.followersCount || 0;
+                        followersTextInput.value = data.followersText || '';
+                        likesCountInput.value = data.likesCount || 0;
+                        likesTextInput.value = data.likesText || '';
+                        initialLoadDone = true;
+                    }
                 } else {
-                    const initial = {
+                    // Show defaults in UI only — do NOT write to Firebase
+                    const defaults = {
                         followersCount: 0,
                         followersText: 'עוקבים בטיקטוק',
                         likesCount: 0,
                         likesText: 'לייקים בטיקטוק'
                     };
-                    set(barRef, initial);
-                    updateDisplay(initial);
+                    updateDisplay(defaults);
+                    if (!initialLoadDone) {
+                        followersCountInput.value = 0;
+                        followersTextInput.value = '';
+                        likesCountInput.value = 0;
+                        likesTextInput.value = '';
+                        initialLoadDone = true;
+                    }
                 }
             });
 
