@@ -1,17 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pen</title>
-  </head>
-  <body>
-
-    <script src="./script.js"></script>
-  </body>
-</html>
-<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -256,11 +243,15 @@
             ownerPanel.style.display = 'block';
             
             // טעינת נתונים קיימים
+            let initialLoadDone = false;
             onValue(barRef, (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    percentInput.value = data.percent || 50;
-                    textInput.value = data.text || '';
+                    if (!initialLoadDone) {
+                        percentInput.value = data.percent || 50;
+                        textInput.value = data.text || '';
+                        initialLoadDone = true;
+                    }
                     updateDisplay(data.percent || 50, data.text || '');
                 } else {
                     // נתונים ראשוניים
