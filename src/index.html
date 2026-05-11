@@ -1,17 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pen</title>
-  </head>
-  <body>
-
-    <script src="./script.js"></script>
-  </body>
-</html>
-<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -168,7 +155,7 @@
             <div id="modeBadge"></div>
             <h1>📊 בר התקדמות</h1>
             <div class="subtitle" id="viewerSubtitle">מציג את הנתונים המעודכנים</div>
-            
+
             <div class="bar-container">
                 <div class="progress-bar" id="progressBar">0%</div>
             </div>
@@ -186,17 +173,12 @@
                 <label>טקסט שיופיע:</label>
                 <textarea id="textInput" rows="2" placeholder="מה כתוב על הבר?"></textarea>
             </div>
-            <button id="updateBtn">🚀 עדכן את הבר לכולם</button>
-            
+            <button id="updateBtn">🚀 עדכן את הבר</button>
+
             <div class="link-box">
                 <strong>🔗 קישור לצופים:</strong><br>
                 <span id="viewerLink"></span>
                 <button id="copyLinkBtn" style="margin-top: 5px; background: #2196f3;">📋 העתק קישור</button>
-            </div>
-            <div class="link-box">
-                <strong>👑 הקישור שלך (בעלים):</strong><br>
-                <span id="ownerLink"></span>
-                <small style="display: block; margin-top: 5px;">*שמור את הקישור הזה - רק מי שפותח אותו יכול לנהל</small>
             </div>
         </div>
     </div>
@@ -206,6 +188,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
@@ -220,12 +203,8 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getDatabase(app);
-        const barRef = ref(db, 'barData');
+        const auth = getAuth(app);
 
-        // זיהוי אם המשתמש הוא הבעלים (לפי URL)
-        const urlParams = new URLSearchParams(window.location.search);
-        const isOwner = urlParams.get('owner') === 'true';
-        
         const viewerCard = document.getElementById('viewerCard');
         const ownerPanel = document.getElementById('ownerPanel');
         const modeBadge = document.getElementById('modeBadge');
@@ -238,73 +217,111 @@
         const updateBtn = document.getElementById('updateBtn');
         const viewerLinkSpan = document.getElementById('viewerLink');
         const copyLinkBtn = document.getElementById('copyLinkBtn');
-        
-        const currentUrl = window.location.href.split('?')[0];
-        const viewerUrl = currentUrl;
-        const ownerUrl = currentUrl + '?owner=true';
-        
-        if (viewerLinkSpan) viewerLinkSpan.textContent = viewerUrl;
-        
-        // הצגת קישור בעלים
-        const ownerLinkSpan = document.getElementById('ownerLink');
-        if (ownerLinkSpan) ownerLinkSpan.textContent = ownerUrl;
-        
-        // מצב בעלים
-        if (isOwner) {
-            modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
-            viewerSubtitle.textContent = '🔧 אתה הבעלים - תוכל לערוך את הבר למטה';
-            ownerPanel.style.display = 'block';
-            
-            // טעינת נתונים קיימים
-            onValue(barRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    percentInput.value = data.percent || 50;
-                    textInput.value = data.text || '';
-                    updateDisplay(data.percent || 50, data.text || '');
-                } else {
-                    // נתונים ראשוניים
-                    set(barRef, { percent: 50, text: 'בר מצב רוח' });
-                    updateDisplay(50, 'בר מצב רוח');
+
+        // Sign in anonymously and set up the app
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const currentUid = user.uid;
+                const storedOwnerUid = localStorage.getItem('barOwnerUid');
+
+                // Determine which bar to display: if URL has ?bar=<uid>, show that bar; otherwise show own bar
+                const urlParams = new URLSearchParams(window.location.search);
+                const barUid = urlParams.get('bar') || currentUid;
+
+                const barRef = ref(db, 'bars/' + barUid);
+
+                // Check if current user is the owner of this bar
+                const isOwner = (currentUid === barUid);
+
+                const currentUrl = window.location.href.split('?')[0];
+                const viewerUrl = currentUrl + '?bar=' + barUid;
+
+                if (viewerLinkSpan) viewerLinkSpan.textContent = viewerUrl;
+
+                // Store owner UID when first creating a bar (on first visit with no stored owner)
+                if (!storedOwnerUid) {
+                    localStorage.setItem('barOwnerUid', currentUid);
+                    // Write owner marker for this user's bar
+                    const ownerMarkerRef = ref(db, 'bars/' + currentUid + '/owner');
+                    set(ownerMarkerRef, currentUid);
                 }
-            });
-            
-            // עדכון ידני
-            updateBtn.addEventListener('click', () => {
-                let percent = parseInt(percentInput.value);
-                if (isNaN(percent)) percent = 0;
-                percent = Math.min(100, Math.max(0, percent));
-                const text = textInput.value || 'התקדמות';
-                
-                set(barRef, { percent: percent, text: text })
-                    .then(() => {
-                        showStatus('✅ עודכן בהצלחה! כל הצופים רואים את השינוי', 'success');
-                        updateDisplay(percent, text);
-                    })
-                    .catch((error) => {
-                        showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
+
+                if (isOwner) {
+                    // Owner mode: show edit controls
+                    modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
+                    viewerSubtitle.textContent = '🔧 אתה הבעלים - תוכל לערוך את הבר למטה';
+                    ownerPanel.style.display = 'block';
+
+                    // Load existing data
+                    onValue(barRef, (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            percentInput.value = data.percent || 50;
+                            textInput.value = data.text || '';
+                            updateDisplay(data.percent || 50, data.text || '');
+                        } else {
+                            // Initial data
+                            set(barRef, { owner: currentUid, percent: 50, text: 'בר מצב רוח' });
+                            updateDisplay(50, 'בר מצב רוח');
+                        }
                     });
-            });
-        } else {
-            // מצב צופה רגיל
-            modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בבר המעודכן</span>';
-            viewerSubtitle.textContent = 'ממתין לעדכונים מהבעלים...';
-            
-            onValue(barRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    updateDisplay(data.percent || 0, data.text || '');
-                    showStatus('🔄 התקבל עדכון חדש מהבעלים!', 'success');
-                    setTimeout(() => {
-                        const statusDiv = document.getElementById('statusMessage');
-                        if (statusDiv) statusDiv.style.display = 'none';
-                    }, 2000);
+
+                    // Manual update
+                    updateBtn.addEventListener('click', () => {
+                        let percent = parseInt(percentInput.value);
+                        if (isNaN(percent)) percent = 0;
+                        percent = Math.min(100, Math.max(0, percent));
+                        const text = textInput.value || 'התקדמות';
+
+                        set(barRef, { owner: currentUid, percent: percent, text: text })
+                            .then(() => {
+                                showStatus('✅ עודכן בהצלחה!', 'success');
+                                updateDisplay(percent, text);
+                            })
+                            .catch((error) => {
+                                showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
+                            });
+                    });
                 } else {
-                    updateDisplay(0, 'ממתין לנתונים...');
+                    // Viewer mode: read-only progress bar view
+                    modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בבר המעודכן</span>';
+                    viewerSubtitle.textContent = 'ממתין לעדכונים מהבעלים...';
+
+                    onValue(barRef, (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            updateDisplay(data.percent || 0, data.text || '');
+                            showStatus('🔄 התקבל עדכון חדש מהבעלים!', 'success');
+                            setTimeout(() => {
+                                const statusDiv = document.getElementById('statusMessage');
+                                if (statusDiv) statusDiv.style.display = 'none';
+                            }, 2000);
+                        } else {
+                            updateDisplay(0, 'ממתין לנתונים...');
+                        }
+                    });
+
+                    // Initial message for viewers
+                    setTimeout(() => {
+                        showStatus('💡 ממתין לעדכונים מהבעלים... ההגדרות הראשונות יופיעו בקרוב', 'success');
+                    }, 1000);
                 }
-            });
-        }
-        
+
+                // Copy link handler
+                if (copyLinkBtn) {
+                    copyLinkBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(viewerUrl);
+                        alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הבר');
+                    });
+                }
+            }
+        });
+
+        // Trigger anonymous sign-in
+        signInAnonymously(auth).catch((error) => {
+            console.error('Firebase anonymous sign-in failed:', error);
+        });
+
         function updateDisplay(percent, text) {
             const displayPercent = percent || 0;
             progressBar.style.width = displayPercent + '%';
@@ -315,7 +332,7 @@
                 barText.textContent = 'התקדמות: ' + displayPercent + '%';
             }
         }
-        
+
         function showStatus(msg, type) {
             statusMessage.innerHTML = `<div class="status status-${type === 'success' ? 'success' : 'error'}">${msg}</div>`;
             setTimeout(() => {
@@ -323,21 +340,6 @@
                     statusMessage.innerHTML = '';
                 }
             }, 3000);
-        }
-        
-        // העתקת קישור
-        if (copyLinkBtn) {
-            copyLinkBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(viewerUrl);
-                alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הבר');
-            });
-        }
-        
-        // הודעה ראשונית
-        if (!isOwner) {
-            setTimeout(() => {
-                showStatus('💡 ממתין לעדכונים מהבעלים... ההגדרות הראשונות יופיעו בקרוב', 'success');
-            }, 1000);
         }
     </script>
 </body>
