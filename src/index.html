@@ -192,7 +192,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
@@ -200,12 +199,10 @@
             projectId: "tiktok-bar-26335",
             storageBucket: "tiktok-bar-26335.firebasestorage.app",
             messagingSenderId: "418257627680",
-            appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45",
-            measurementId: "G-2549WJGSTH"
+            appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45"
         };
 
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const barRef = ref(db, 'barData');
 
