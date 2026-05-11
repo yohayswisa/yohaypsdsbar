@@ -378,7 +378,7 @@
                 </div>
             </div>
 
-            <button id="updateBtn">🚀 עדכן סטטיסטיקות</button>
+            <button id="updateBtn" disabled>🚀 עדכן סטטיסטיקות</button>
 
             <div class="link-box">
                 <strong>🔗 קישור לצופים:</strong><br>
@@ -398,6 +398,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
@@ -411,6 +412,7 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const barRef = ref(db, 'barData');
@@ -485,100 +487,114 @@
             }, 3000);
         }
 
-        if (isOwner) {
-            modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
-            ownerPanel.style.display = 'block';
+        if (updateBtn) updateBtn.disabled = true;
 
-            let initialLoadDone = false;
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is signed in - proceed with app logic
+                if (updateBtn) updateBtn.disabled = false;
 
-            onValue(barRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    updateDisplay(data);
-                    if (!initialLoadDone) {
-                        followersCountInput.value = data.followersCount || 0;
-                        followersTextInput.value = data.followersText || '';
-                        likesCountInput.value = data.likesCount || 0;
-                        likesTextInput.value = data.likesText || '';
-                        initialLoadDone = true;
-                    }
+                if (isOwner) {
+                    modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
+                    ownerPanel.style.display = 'block';
+
+                    let initialLoadDone = false;
+
+                    onValue(barRef, (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            updateDisplay(data);
+                            if (!initialLoadDone) {
+                                followersCountInput.value = data.followersCount || 0;
+                                followersTextInput.value = data.followersText || '';
+                                likesCountInput.value = data.likesCount || 0;
+                                likesTextInput.value = data.likesText || '';
+                                initialLoadDone = true;
+                            }
+                        } else {
+                            // Show defaults in UI only — do NOT write to Firebase
+                            const defaults = {
+                                followersCount: 0,
+                                followersText: 'עוקבים בטיקטוק',
+                                likesCount: 0,
+                                likesText: 'לייקים בטיקטוק'
+                            };
+                            updateDisplay(defaults);
+                            if (!initialLoadDone) {
+                                followersCountInput.value = 0;
+                                followersTextInput.value = '';
+                                likesCountInput.value = 0;
+                                likesTextInput.value = '';
+                                initialLoadDone = true;
+                            }
+                        }
+                    });
+
+                    updateBtn.addEventListener('click', () => {
+                        let fc = parseInt(followersCountInput.value);
+                        let lc = parseInt(likesCountInput.value);
+                        if (isNaN(fc)) fc = 0;
+                        if (isNaN(lc)) lc = 0;
+                        fc = Math.max(0, fc);
+                        lc = Math.max(0, lc);
+                        const ft = followersTextInput.value || '';
+                        const lt = likesTextInput.value || '';
+
+                        set(barRef, {
+                            followersCount: fc,
+                            followersText: ft,
+                            likesCount: lc,
+                            likesText: lt
+                        })
+                        .then(() => {
+                            showStatus('✅ הסטטיסטיקות עודכנו בהצלחה! כל הצופים רואים את השינוי', 'success');
+                        })
+                        .catch((error) => {
+                            showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
+                        });
+                    });
                 } else {
-                    // Show defaults in UI only — do NOT write to Firebase
-                    const defaults = {
-                        followersCount: 0,
-                        followersText: 'עוקבים בטיקטוק',
-                        likesCount: 0,
-                        likesText: 'לייקים בטיקטוק'
-                    };
-                    updateDisplay(defaults);
-                    if (!initialLoadDone) {
-                        followersCountInput.value = 0;
-                        followersTextInput.value = '';
-                        likesCountInput.value = 0;
-                        likesTextInput.value = '';
-                        initialLoadDone = true;
-                    }
-                }
-            });
+                    modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בסטטיסטיקות המעודכנות</span>';
 
-            updateBtn.addEventListener('click', () => {
-                let fc = parseInt(followersCountInput.value);
-                let lc = parseInt(likesCountInput.value);
-                if (isNaN(fc)) fc = 0;
-                if (isNaN(lc)) lc = 0;
-                fc = Math.max(0, fc);
-                lc = Math.max(0, lc);
-                const ft = followersTextInput.value || '';
-                const lt = likesTextInput.value || '';
-
-                set(barRef, {
-                    followersCount: fc,
-                    followersText: ft,
-                    likesCount: lc,
-                    likesText: lt
-                })
-                .then(() => {
-                    showStatus('✅ הסטטיסטיקות עודכנו בהצלחה! כל הצופים רואים את השינוי', 'success');
-                })
-                .catch((error) => {
-                    showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
-                });
-            });
-        } else {
-            modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בסטטיסטיקות המעודכנות</span>';
-
-            onValue(barRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    updateDisplay(data);
-                    showStatus('🔄 התקבל עדכון חדש!', 'success');
-                    setTimeout(() => {
-                        const statusDiv = document.getElementById('statusMessage');
-                        if (statusDiv) statusDiv.innerHTML = '';
-                    }, 2000);
-                } else {
-                    updateDisplay({
-                        followersCount: 0,
-                        followersText: 'ממתין לנתונים...',
-                        likesCount: 0,
-                        likesText: 'ממתין לנתונים...'
+                    onValue(barRef, (snapshot) => {
+                        const data = snapshot.val();
+                        if (data) {
+                            updateDisplay(data);
+                            showStatus('🔄 התקבל עדכון חדש!', 'success');
+                            setTimeout(() => {
+                                const statusDiv = document.getElementById('statusMessage');
+                                if (statusDiv) statusDiv.innerHTML = '';
+                            }, 2000);
+                        } else {
+                            updateDisplay({
+                                followersCount: 0,
+                                followersText: 'ממתין לנתונים...',
+                                likesCount: 0,
+                                likesText: 'ממתין לנתונים...'
+                            });
+                        }
                     });
                 }
-            });
-        }
 
-        if (copyLinkBtn) {
-            copyLinkBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(viewerUrl);
-                alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הסטטיסטיקות');
-            });
-        }
+                if (copyLinkBtn) {
+                    copyLinkBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(viewerUrl);
+                        alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הסטטיסטיקות');
+                    });
+                }
 
-        if (!isOwner) {
-            setTimeout(() => {
-                showStatus('💡 ממתין לעדכונים מהבעלים...', 'success');
-            }, 1000);
-        }
+                if (!isOwner) {
+                    setTimeout(() => {
+                        showStatus('💡 ממתין לעדכונים מהבעלים...', 'success');
+                    }, 1000);
+                }
+            } else {
+                // Sign in anonymously
+                signInAnonymously(auth).catch((error) => {
+                    console.error('Anonymous auth failed:', error);
+                });
+            }
+        });
     </script>
 </body>
 </html>
