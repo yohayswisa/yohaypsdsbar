@@ -1,17 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pen</title>
-  </head>
-  <body>
-
-    <script src="./script.js"></script>
-  </body>
-</html>
-<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -205,7 +192,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
@@ -213,12 +199,10 @@
             projectId: "tiktok-bar-26335",
             storageBucket: "tiktok-bar-26335.firebasestorage.app",
             messagingSenderId: "418257627680",
-            appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45",
-            measurementId: "G-2549WJGSTH"
+            appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45"
         };
 
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const barRef = ref(db, 'barData');
 
@@ -256,11 +240,15 @@
             ownerPanel.style.display = 'block';
             
             // טעינת נתונים קיימים
+            let initialLoadDone = false;
             onValue(barRef, (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
-                    percentInput.value = data.percent || 50;
-                    textInput.value = data.text || '';
+                    if (!initialLoadDone) {
+                        percentInput.value = data.percent || 50;
+                        textInput.value = data.text || '';
+                        initialLoadDone = true;
+                    }
                     updateDisplay(data.percent || 50, data.text || '');
                 } else {
                     // נתונים ראשוניים
