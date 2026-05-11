@@ -393,12 +393,9 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
@@ -412,8 +409,6 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const analytics = getAnalytics(app);
         const db = getDatabase(app);
         const barRef = ref(db, 'barData');
 
@@ -421,7 +416,8 @@
         const LIKES_MILESTONE = 100000;
 
         const urlParams = new URLSearchParams(window.location.search);
-        const isOwner = urlParams.get('owner') === 'true';
+        const ownerParam = (urlParams.get('owner') || '').toLowerCase();
+        const isOwner = ownerParam === 'true' || ownerParam === 'yes' || ownerParam === '1';
 
         const ownerPanel = document.getElementById('ownerPanel');
         const modeBadge = document.getElementById('modeBadge');
@@ -465,13 +461,11 @@
             const lc = data.likesCount || 0;
             const lt = data.likesText || '';
 
-            // Followers
             followersNumber.textContent = formatNumber(fc);
             followersDesc.textContent = ft || 'עוקבים בטיקטוק';
             const followersPct = Math.min(100, (fc / FOLLOWERS_MILESTONE) * 100);
             followersBar.style.width = followersPct + '%';
 
-            // Likes
             likesNumber.textContent = formatNumber(lc);
             likesDesc.textContent = lt || 'לייקים בטיקטוק';
             const likesPct = Math.min(100, (lc / LIKES_MILESTONE) * 100);
@@ -479,122 +473,128 @@
         }
 
         function showStatus(msg, type) {
-            statusMessage.innerHTML = `<div class="status status-${type === 'success' ? 'success' : 'error'}">${msg}</div>`;
-            setTimeout(() => {
+            statusMessage.innerHTML = '<div class="status status-' + (type === 'success' ? 'success' : 'error') + '">' + msg + '</div>';
+            setTimeout(function() {
                 if (statusMessage.innerHTML.includes(msg)) {
                     statusMessage.innerHTML = '';
                 }
-            }, 3000);
+            }, 5000);
         }
 
-        if (updateBtn) updateBtn.disabled = true;
+        function showDbError(error) {
+            showStatus('שגיאת מסד נתונים: ' + error.message + ' — יש לשנות את כללי האבטחה ב-Firebase Console ל-public read/write', 'error');
+        }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // User is signed in - proceed with app logic
-                if (updateBtn) updateBtn.disabled = false;
+        if (isOwner) {
+            modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
+            ownerPanel.style.display = 'block';
 
-                if (isOwner) {
-                    modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
-                    ownerPanel.style.display = 'block';
+            var initialLoadDone = false;
 
-                    let initialLoadDone = false;
-
-                    onValue(barRef, (snapshot) => {
-                        const data = snapshot.val();
-                        if (data) {
-                            updateDisplay(data);
-                            if (!initialLoadDone) {
-                                followersCountInput.value = data.followersCount || 0;
-                                followersTextInput.value = data.followersText || '';
-                                likesCountInput.value = data.likesCount || 0;
-                                likesTextInput.value = data.likesText || '';
-                                initialLoadDone = true;
-                            }
-                        } else {
-                            // Show defaults in UI only — do NOT write to Firebase
-                            const defaults = {
-                                followersCount: 0,
-                                followersText: 'עוקבים בטיקטוק',
-                                likesCount: 0,
-                                likesText: 'לייקים בטיקטוק'
-                            };
-                            updateDisplay(defaults);
-                            if (!initialLoadDone) {
-                                followersCountInput.value = 0;
-                                followersTextInput.value = '';
-                                likesCountInput.value = 0;
-                                likesTextInput.value = '';
-                                initialLoadDone = true;
-                            }
-                        }
-                    });
-
-                    updateBtn.addEventListener('click', () => {
-                        let fc = parseInt(followersCountInput.value);
-                        let lc = parseInt(likesCountInput.value);
-                        if (isNaN(fc)) fc = 0;
-                        if (isNaN(lc)) lc = 0;
-                        fc = Math.max(0, fc);
-                        lc = Math.max(0, lc);
-                        const ft = followersTextInput.value || '';
-                        const lt = likesTextInput.value || '';
-
-                        set(barRef, {
-                            followersCount: fc,
-                            followersText: ft,
-                            likesCount: lc,
-                            likesText: lt
-                        })
-                        .then(() => {
-                            showStatus('✅ הסטטיסטיקות עודכנו בהצלחה! כל הצופים רואים את השינוי', 'success');
-                        })
-                        .catch((error) => {
-                            showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
-                        });
-                    });
+            onValue(barRef, function(snapshot) {
+                var data = snapshot.val();
+                if (data) {
+                    updateDisplay(data);
+                    if (!initialLoadDone) {
+                        followersCountInput.value = data.followersCount || 0;
+                        followersTextInput.value = data.followersText || '';
+                        likesCountInput.value = data.likesCount || 0;
+                        likesTextInput.value = data.likesText || '';
+                        initialLoadDone = true;
+                    }
                 } else {
-                    modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בסטטיסטיקות המעודכנות</span>';
-
-                    onValue(barRef, (snapshot) => {
-                        const data = snapshot.val();
-                        if (data) {
-                            updateDisplay(data);
-                            showStatus('🔄 התקבל עדכון חדש!', 'success');
-                            setTimeout(() => {
-                                const statusDiv = document.getElementById('statusMessage');
-                                if (statusDiv) statusDiv.innerHTML = '';
-                            }, 2000);
-                        } else {
-                            updateDisplay({
-                                followersCount: 0,
-                                followersText: 'ממתין לנתונים...',
-                                likesCount: 0,
-                                likesText: 'ממתין לנתונים...'
-                            });
-                        }
-                    });
+                    var defaults = {
+                        followersCount: 0,
+                        followersText: 'עוקבים בטיקטוק',
+                        likesCount: 0,
+                        likesText: 'לייקים בטיקטוק'
+                    };
+                    updateDisplay(defaults);
+                    if (!initialLoadDone) {
+                        followersCountInput.value = 0;
+                        followersTextInput.value = '';
+                        likesCountInput.value = 0;
+                        likesTextInput.value = '';
+                        initialLoadDone = true;
+                    }
                 }
+            }, function(error) {
+                showDbError(error);
+            });
 
-                if (copyLinkBtn) {
-                    copyLinkBtn.addEventListener('click', () => {
-                        navigator.clipboard.writeText(viewerUrl);
-                        alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הסטטיסטיקות');
-                    });
-                }
+            updateBtn.addEventListener('click', function() {
+                var fc = parseInt(followersCountInput.value);
+                var lc = parseInt(likesCountInput.value);
+                if (isNaN(fc)) fc = 0;
+                if (isNaN(lc)) lc = 0;
+                fc = Math.max(0, fc);
+                lc = Math.max(0, lc);
+                var ft = followersTextInput.value || '';
+                var lt = likesTextInput.value || '';
 
-                if (!isOwner) {
-                    setTimeout(() => {
-                        showStatus('💡 ממתין לעדכונים מהבעלים...', 'success');
-                    }, 1000);
-                }
-            } else {
-                // Sign in anonymously
-                signInAnonymously(auth).catch((error) => {
-                    console.error('Anonymous auth failed:', error);
+                updateBtn.disabled = true;
+                updateBtn.textContent = 'מעדכן...';
+
+                set(barRef, {
+                    followersCount: fc,
+                    followersText: ft,
+                    likesCount: lc,
+                    likesText: lt
+                })
+                .then(function() {
+                    showStatus('✅ הסטטיסטיקות עודכנו בהצלחה! כל הצופים רואים את השינוי', 'success');
+                })
+                .catch(function(error) {
+                    showDbError(error);
+                })
+                .finally(function() {
+                    updateBtn.disabled = false;
+                    updateBtn.textContent = '🚀 עדכן סטטיסטיקות';
                 });
-            }
-        });
+            });
+        } else {
+            modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בסטטיסטיקות המעודכנות</span>';
+
+            var viewerInitialLoad = false;
+
+            onValue(barRef, function(snapshot) {
+                var data = snapshot.val();
+                if (data) {
+                    updateDisplay(data);
+                    if (viewerInitialLoad) {
+                        showStatus('🔄 התקבל עדכון חדש!', 'success');
+                        setTimeout(function() {
+                            var statusDiv = document.getElementById('statusMessage');
+                            if (statusDiv) statusDiv.innerHTML = '';
+                        }, 2000);
+                    }
+                    viewerInitialLoad = true;
+                } else {
+                    updateDisplay({
+                        followersCount: 0,
+                        followersText: 'ממתין לנתונים...',
+                        likesCount: 0,
+                        likesText: 'ממתין לנתונים...'
+                    });
+                    viewerInitialLoad = true;
+                }
+            }, function(error) {
+                showDbError(error);
+            });
+        }
+
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', function() {
+                navigator.clipboard.writeText(viewerUrl);
+                alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הסטטיסטיקות');
+            });
+        }
+
+        if (!isOwner) {
+            setTimeout(function() {
+                showStatus('💡 ממתין לעדכונים מהבעלים...', 'success');
+            }, 1000);
+        }
     </script>
 </body>
 </html>
