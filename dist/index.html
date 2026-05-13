@@ -521,6 +521,7 @@
   </style>
 </head>
 <body>
+<noscript><div style="color:white;text-align:center;padding:40px;">JavaScript is required to use this app. Please enable JavaScript in your browser.</div></noscript>
 
 <!-- Password Modal (owner route only) -->
 <div id="passwordModal" class="hidden">
@@ -726,7 +727,6 @@
 <script type="module">
   import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
   import { getDatabase, ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-  import { getAnalytics }           from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
   /* ── Route detection ── */
@@ -746,7 +746,6 @@
   };
 
   const app  = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
   const db   = getDatabase(app);
   const auth = getAuth(app);
 
@@ -950,7 +949,20 @@
   });
 
   /* ── Auth + main logic ── */
+  const authTimeout = setTimeout(() => {
+    const ov = document.getElementById('loadingOverlay');
+    if (ov) { ov.style.opacity = '0'; setTimeout(() => ov.style.display = 'none', 400); }
+    const modal = document.getElementById('passwordModal');
+    if (modal && !modal.classList.contains('hidden')) {
+      // already showing modal, nothing to do
+    } else if (modal && modal.classList.contains('hidden') && isOwnerRoute) {
+      // Show a reload message
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }
+  }, 8000);
+
   onAuthStateChanged(auth, async (user) => {
+    clearTimeout(authTimeout);
     if (!user) return;
 
     const currentUid = user.uid;
