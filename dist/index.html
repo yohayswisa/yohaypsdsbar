@@ -631,6 +631,21 @@
 
   <!-- ── Edit Panel (owner only) ── -->
   <div id="editPanel" style="display:none;">
+    <div id="editPanelHeading" style="
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #a78bfa;
+      background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: .02em;
+    ">⚙️ EDIT PANEL — Owner Controls</div>
     <button class="edit-toggle" id="editToggle">
       <span>⚙️ Edit Panel</span>
       <span class="chevron">▼</span>
@@ -715,7 +730,9 @@
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
   /* ── Route detection ── */
-  const isOwnerRoute = window.location.pathname === '/owner';
+  // Match /owner and /owner/ (with or without trailing slash)
+  const _p = window.location.pathname.replace(/\/$/, '');
+  const isOwnerRoute = _p === '/owner' || _p.endsWith('/owner');
 
   /* ── Firebase config (unchanged) ── */
   const firebaseConfig = {
@@ -944,8 +961,10 @@
       /* ── Owner route ── */
       const barUid  = currentUid;
       const barRef  = ref(db, 'bars/' + barUid);
-      const currentUrl = window.location.href.split('/owner')[0];
-      const viewerUrl  = currentUrl + '/?bar=' + barUid;
+      // Robust viewerUrl: strip /owner (with or without trailing slash) then append viewer query
+      const _origin = window.location.origin;
+      const _base   = window.location.pathname.replace(/\/owner\/?$/, '');
+      const viewerUrl = _origin + (_base || '') + '/?bar=' + barUid;
 
       /* Check if password is already set */
       const pwSnap = await get(ref(db, 'bars/' + barUid + '/passwordHash'));
@@ -980,7 +999,9 @@
           try {
             const hash = await hashPassword(pw);
             await update(ref(db, 'bars/' + barUid), { passwordHash: hash, owner: currentUid });
+            // Hide modal and loading overlay immediately
             passwordModal.classList.add('hidden');
+            loadingOverlay.style.display = 'none';
             pwSubmitBtn.removeEventListener('click', handlePwSubmit);
             initOwnerView(barUid, barRef, viewerUrl);
           } catch (e) {
@@ -992,7 +1013,9 @@
             const hash = await hashPassword(pw);
             const storedHash = pwSnap.val();
             if (hash === storedHash) {
+              // Hide modal and loading overlay immediately
               passwordModal.classList.add('hidden');
+              loadingOverlay.style.display = 'none';
               pwSubmitBtn.removeEventListener('click', handlePwSubmit);
               initOwnerView(barUid, barRef, viewerUrl);
             } else {
@@ -1067,21 +1090,35 @@
 
   /* ── Owner view initialisation ── */
   function initOwnerView(barUid, barRef, viewerUrl) {
-    const isOwner = true;
 
-    /* mode badge + header */
+    /* ── DIRECTLY show all owner UI elements — no abstraction ── */
+    // Edit panel
+    document.getElementById('editPanel').style.display = 'block';
+    // Open the accordion body immediately (force visible, no transition delay)
+    const _editBody = document.getElementById('editBody');
+    _editBody.style.transition = 'none';           // disable transition so it snaps open
+    _editBody.classList.add('open');
+    document.getElementById('editToggle').classList.add('open');
+    // Restore transition after paint so future toggle animations work
+    requestAnimationFrame(() => { _editBody.style.transition = ''; });
+
+    // Owner share banner
+    document.getElementById('ownerShareBanner').style.display = 'block';
+    document.getElementById('bannerShareUrl').value = viewerUrl;
+
+    // Share link card
+    document.getElementById('shareLinkBox').style.display = 'block';
+    document.getElementById('viewerLinkText').textContent = viewerUrl;
+
+    // Counter +/− buttons
+    document.getElementById('counterBtns').style.display = 'flex';
+
+    // Role subtitle
+    document.getElementById('roleSubtitle').textContent = 'You are the owner — share the link below for viewers';
+
+    // Mode badge + header
     modeBadge.innerHTML = '<span class="mode-badge badge-owner">👑 Owner Mode</span>';
     headerSub.textContent = 'You control this dashboard';
-    roleSubtitle.textContent = 'You are the owner — share the link below for viewers';
-    editPanel.style.display = 'block';
-    // Open the edit accordion by default for owner
-    editBody.classList.add('open');
-    editToggle.classList.add('open');
-    shareLinkBox.style.display = 'block';
-    viewerLinkText.textContent = viewerUrl;
-    counterBtns.style.display = 'flex';
-    ownerShareBanner.style.display = 'block';
-    bannerShareUrl.value = viewerUrl;
 
     /* ── Realtime listener (owner) ── */
     onValue(barRef, (snap) => {
@@ -1190,18 +1227,14 @@
     copyLinkBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(viewerUrl)
         .then(() => toast('📋 Link copied!'))
-        .catch(() => {
-          prompt('Copy this link:', viewerUrl);
-        });
+        .catch(() => { prompt('Copy this link:', viewerUrl); });
     });
 
     /* banner copy link */
     bannerCopyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(viewerUrl)
         .then(() => toast('📋 Link copied!'))
-        .catch(() => {
-          prompt('Copy this link:', viewerUrl);
-        });
+        .catch(() => { prompt('Copy this link:', viewerUrl); });
     });
   }
 
