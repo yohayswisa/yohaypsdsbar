@@ -519,6 +519,9 @@
       animation: flipDown 0.35s ease;
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 <noscript><div style="color:white;text-align:center;padding:40px;">JavaScript is required to use this app. Please enable JavaScript in your browser.</div></noscript>
@@ -724,18 +727,18 @@
 
 </div><!-- /container -->
 
-<script type="module">
-  import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getDatabase, ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+<script>
+try {
+  if (typeof firebase === 'undefined') {
+    throw new Error('Firebase SDK failed to load. Please check your network connection and reload the page.');
+  }
 
   /* ── Route detection ── */
-  // Match /owner and /owner/ (with or without trailing slash)
-  const _p = window.location.pathname.replace(/\/$/, '');
-  const isOwnerRoute = _p === '/owner' || _p.endsWith('/owner');
+  var _p = window.location.pathname.replace(/\/$/, '');
+  var isOwnerRoute = _p === '/owner' || _p.endsWith('/owner');
 
   /* ── Firebase config (unchanged) ── */
-  const firebaseConfig = {
+  var firebaseConfig = {
     apiKey:            "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
     authDomain:        "tiktok-bar-26335.firebaseapp.com",
     projectId:         "tiktok-bar-26335",
@@ -745,9 +748,9 @@
     measurementId:     "G-2549WJGSTH"
   };
 
-  const app  = initializeApp(firebaseConfig);
-  const db   = getDatabase(app);
-  const auth = getAuth(app);
+  var app  = firebase.initializeApp(firebaseConfig);
+  var db   = firebase.database();
+  var auth = firebase.auth();
 
   /* ── DOM refs ── */
   const loadingOverlay  = document.getElementById('loadingOverlay');
@@ -961,7 +964,7 @@
     }
   }, 8000);
 
-  onAuthStateChanged(auth, async (user) => {
+  auth.onAuthStateChanged(async function(user) {
     clearTimeout(authTimeout);
     if (!user) return;
 
@@ -972,14 +975,14 @@
     if (isOwnerRoute) {
       /* ── Owner route ── */
       const barUid  = currentUid;
-      const barRef  = ref(db, 'bars/' + barUid);
+      const barRef  = db.ref('bars/' + barUid);
       // Robust viewerUrl: strip /owner (with or without trailing slash) then append viewer query
       const _origin = window.location.origin;
       const _base   = window.location.pathname.replace(/\/owner\/?$/, '');
       const viewerUrl = _origin + (_base || '') + '/?bar=' + barUid;
 
       /* Check if password is already set */
-      const pwSnap = await get(ref(db, 'bars/' + barUid + '/passwordHash'));
+      const pwSnap = await db.ref('bars/' + barUid + '/passwordHash').once('value');
       const hasPassword = pwSnap.exists() && !!pwSnap.val();
 
       /* Show password modal */
@@ -1010,7 +1013,7 @@
           if (pw.length < 4) { pwError.textContent = 'Password must be at least 4 characters'; return; }
           try {
             const hash = await hashPassword(pw);
-            await update(ref(db, 'bars/' + barUid), { passwordHash: hash, owner: currentUid });
+            await db.ref('bars/' + barUid).update({ passwordHash: hash, owner: currentUid });
             // Hide modal and loading overlay immediately
             passwordModal.classList.add('hidden');
             loadingOverlay.style.display = 'none';
@@ -1051,7 +1054,7 @@
       if (barParam) {
         /* View specific bar */
         const barUid = barParam;
-        const barRef = ref(db, 'bars/' + barUid);
+        const barRef = db.ref('bars/' + barUid);
         const currentUrl = window.location.href.split('?')[0];
         const viewerUrl  = currentUrl + '?bar=' + barUid;
 
@@ -1069,7 +1072,7 @@
         counterBtns.style.display = 'none';
 
         /* Realtime listener (viewer, no edit) */
-        onValue(barRef, (snap) => {
+        barRef.on('value', function(snap) {
           const data = snap.val() || {};
           renderProgress(data.percent ?? 50, data.text ?? '');
           if (data.countdown) startCountdown(data.countdown);
@@ -1133,7 +1136,7 @@
     headerSub.textContent = 'You control this dashboard';
 
     /* ── Realtime listener (owner) ── */
-    onValue(barRef, (snap) => {
+    barRef.on('value', function(snap) {
       const data = snap.val() || {};
 
       // progress
@@ -1173,7 +1176,7 @@
       if (isNaN(pct)) pct = 0;
       pct = Math.min(100, Math.max(0, pct));
       const txt = textInput.value.trim() || 'Progress';
-      update(barRef, { percent: pct, text: txt })
+      barRef.update({ percent: pct, text: txt })
         .then(() => toast('✅ Bar updated!'))
         .catch(e => toast('❌ Error: ' + e.message));
     });
@@ -1181,7 +1184,7 @@
     updateCountdownBtn.addEventListener('click', () => {
       const val = countdownInput.value;
       if (!val) { toast('⚠️ Pick a date first'); return; }
-      update(barRef, { countdown: new Date(val).toISOString() })
+      barRef.update({ countdown: new Date(val).toISOString() })
         .then(() => toast('✅ Countdown saved!'))
         .catch(e => toast('❌ Error: ' + e.message));
     });
@@ -1189,7 +1192,7 @@
     updateCounterBtn.addEventListener('click', () => {
       const label = counterLabelInput.value.trim() || 'Count';
       const value = parseInt(counterValueInput.value) || 0;
-      update(barRef, { counter: { label, value } })
+      barRef.update({ counter: { label, value } })
         .then(() => toast('✅ Counter saved!'))
         .catch(e => toast('❌ Error: ' + e.message));
     });
@@ -1202,13 +1205,13 @@
         const pct   = parseInt(row.querySelector('.g-pct').value) || 0;
         if (label) goals.push({ label, percent: Math.min(100, Math.max(0, pct)) });
       });
-      update(barRef, { goals })
+      barRef.update({ goals })
         .then(() => toast('✅ Goals saved!'))
         .catch(e => toast('❌ Error: ' + e.message));
     });
 
     updateStatusBtn.addEventListener('click', () => {
-      update(barRef, { status: statusSelect.value })
+      barRef.update({ status: statusSelect.value })
         .then(() => toast('✅ Status updated!'))
         .catch(e => toast('❌ Error: ' + e.message));
     });
@@ -1217,7 +1220,7 @@
     counterIncBtn.addEventListener('click', () => {
       const cur = parseInt(counterValueEl.textContent) || 0;
       const newVal = cur + 1;
-      update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
+      barRef.update({ counter: { label: counterLabelEl.textContent, value: newVal } })
         .catch(e => toast('❌ ' + e.message));
       counterValueEl.classList.remove('flash');
       void counterValueEl.offsetWidth;
@@ -1227,7 +1230,7 @@
     counterDecBtn.addEventListener('click', () => {
       const cur = parseInt(counterValueEl.textContent) || 0;
       const newVal = cur - 1;
-      update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
+      barRef.update({ counter: { label: counterLabelEl.textContent, value: newVal } })
         .catch(e => toast('❌ ' + e.message));
       counterValueEl.classList.remove('flash');
       void counterValueEl.offsetWidth;
@@ -1250,10 +1253,32 @@
     });
   }
 
-  signInAnonymously(auth).catch(err => {
+  auth.signInAnonymously().catch(function(err) {
     console.error('Anonymous sign-in failed:', err);
     document.getElementById('loadingOverlay').style.display = 'none';
   });
+
+} catch(e) {
+  console.error('Firebase initialization failed:', e);
+  var lo = document.getElementById('loadingOverlay');
+  if (lo) {
+    lo.innerHTML = '<div style="color:#f87171;text-align:center;padding:40px;font-family:sans-serif;">' +
+      '<div style="font-size:1.5rem;margin-bottom:12px;">⚠️</div>' +
+      '<div style="font-size:1rem;margin-bottom:8px;">Failed to load the app.</div>' +
+      '<div style="font-size:.85rem;color:#94a3b8;">' + (e.message || 'Unknown error') + '</div>' +
+      '<button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;">Reload</button>' +
+      '</div>';
+  }
+}
+</script>
+<script>
+  setTimeout(function() {
+    var lo = document.getElementById('loadingOverlay');
+    if (lo && lo.style.display !== 'none') {
+      lo.style.opacity = '0';
+      setTimeout(function() { lo.style.display = 'none'; }, 400);
+    }
+  }, 5000);
 </script>
 </body>
 </html>
