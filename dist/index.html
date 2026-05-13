@@ -499,6 +499,25 @@
 
     /* ── Misc ───────────────────────────────────────── */
     .divider { height: 1px; background: var(--glass-border); margin: 4px 0 16px; }
+
+    /* ── Counter flash ──────────────────────────────── */
+    .counter-value {
+      transition: color 0.5s ease, transform 0.15s;
+    }
+    .counter-value.flash {
+      color: #7c3aed;
+      transition: color 0.5s ease;
+    }
+
+    /* ── Countdown flip animation ───────────────────── */
+    @keyframes flipDown {
+      0%   { transform: rotateX(0deg);  opacity: 1; }
+      50%  { transform: rotateX(90deg); opacity: 0; }
+      100% { transform: rotateX(0deg);  opacity: 1; }
+    }
+    .cd-num.flip {
+      animation: flipDown 0.35s ease;
+    }
   </style>
 </head>
 <body>
@@ -775,6 +794,21 @@
 
   function pad(n) { return String(Math.max(0, Math.floor(n))).padStart(2, '0'); }
 
+  function animateNumber(from, to, el, duration = 400) {
+    const start = performance.now();
+    const range = to - from;
+    function step(now) {
+      const elapsed = Math.min(now - start, duration);
+      const progress = elapsed / duration;
+      // ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(from + range * eased);
+      if (elapsed < duration) requestAnimationFrame(step);
+      else el.textContent = to;
+    }
+    requestAnimationFrame(step);
+  }
+
   /* ── Password hashing utility ── */
   async function hashPassword(password) {
     const encoder = new TextEncoder();
@@ -800,10 +834,23 @@
         return;
       }
       const totalSecs = diff / 1000;
-      cdDays.textContent  = pad(totalSecs / 86400);
-      cdHours.textContent = pad((totalSecs % 86400) / 3600);
-      cdMins.textContent  = pad((totalSecs % 3600) / 60);
-      cdSecs.textContent  = pad(totalSecs % 60);
+      const newDays  = pad(totalSecs / 86400);
+      const newHours = pad((totalSecs % 86400) / 3600);
+      const newMins  = pad((totalSecs % 3600) / 60);
+      const newSecs  = pad(totalSecs % 60);
+
+      function flipUpdate(el, newVal) {
+        if (el.textContent !== newVal) {
+          el.classList.remove('flip');
+          void el.offsetWidth; // reflow to restart animation
+          el.classList.add('flip');
+          el.textContent = newVal;
+        }
+      }
+      flipUpdate(cdDays,  newDays);
+      flipUpdate(cdHours, newHours);
+      flipUpdate(cdMins,  newMins);
+      flipUpdate(cdSecs,  newSecs);
     }
     tick();
     cdInterval = setInterval(tick, 1000);
@@ -812,7 +859,9 @@
   /* ── Counter display ── */
   let _counterAnimTimer;
   function renderCounter(val, label) {
-    counterValueEl.textContent = val ?? 0;
+    const prevVal = parseInt(counterValueEl.textContent) || 0;
+    const newVal = val ?? 0;
+    animateNumber(prevVal, newVal, counterValueEl, 400);
     counterLabelEl.textContent = label || 'Count';
     counterValueEl.classList.add('bump');
     clearTimeout(_counterAnimTimer);
@@ -821,19 +870,38 @@
 
   /* ── Goals display ── */
   function renderGoals(goals) {
-    goalsList.innerHTML = '';
-    if (!goals || !goals.length) {
-      goalsList.innerHTML = '<div style="color:var(--text-secondary);font-size:.85rem;">No goals set.</div>';
+    const validGoals = (goals || []).filter(g => g && g.label);
+
+    // Rebuild DOM if goal count changed or list is empty
+    if (goalsList.children.length !== validGoals.length) {
+      goalsList.innerHTML = '';
+      if (!validGoals.length) {
+        goalsList.innerHTML = '<div style="color:var(--text-secondary);font-size:.85rem;">No goals set.</div>';
+        return;
+      }
+      validGoals.forEach(g => {
+        const pct = Math.min(100, Math.max(0, g.percent || 0));
+        goalsList.insertAdjacentHTML('beforeend', `
+          <div class="goal-item">
+            <div class="goal-item-header"><span>${g.label}</span><span class="goal-pct">${pct}%</span></div>
+            <div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>
+          </div>`);
+      });
       return;
     }
-    goals.forEach(g => {
-      if (!g || !g.label) return;
+
+    // In-place update so CSS transition on .goal-fill fires
+    const items = goalsList.querySelectorAll('.goal-item');
+    validGoals.forEach((g, i) => {
       const pct = Math.min(100, Math.max(0, g.percent || 0));
-      goalsList.insertAdjacentHTML('beforeend', `
-        <div class="goal-item">
-          <div class="goal-item-header"><span>${g.label}</span><span>${pct}%</span></div>
-          <div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>
-        </div>`);
+      const item = items[i];
+      if (!item) return;
+      const fill   = item.querySelector('.goal-fill');
+      const pctEl  = item.querySelector('.goal-pct');
+      const labelEl = item.querySelector('.goal-item-header span:first-child');
+      if (labelEl) labelEl.textContent = g.label;
+      if (fill)   fill.style.width = pct + '%';
+      if (pctEl)  pctEl.textContent = pct + '%';
     });
   }
 
@@ -853,7 +921,8 @@
   function renderProgress(percent, text) {
     const p = Math.min(100, Math.max(0, percent || 0));
     progressFill.style.width = p + '%';
-    barPct.textContent = p + '%';
+    const prevPct = parseInt(barPct.textContent) || 0;
+    animateNumber(prevPct, p, { set textContent(v) { barPct.textContent = v + '%'; } }, 600);
     barCaption.textContent = text || '—';
   }
 
@@ -1005,6 +1074,9 @@
     headerSub.textContent = 'You control this dashboard';
     roleSubtitle.textContent = 'You are the owner — share the link below for viewers';
     editPanel.style.display = 'block';
+    // Open the edit accordion by default for owner
+    editBody.classList.add('open');
+    editToggle.classList.add('open');
     shareLinkBox.style.display = 'block';
     viewerLinkText.textContent = viewerUrl;
     counterBtns.style.display = 'flex';
@@ -1098,12 +1170,20 @@
       const newVal = cur + 1;
       update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
         .catch(e => toast('❌ ' + e.message));
+      counterValueEl.classList.remove('flash');
+      void counterValueEl.offsetWidth;
+      counterValueEl.classList.add('flash');
+      setTimeout(() => counterValueEl.classList.remove('flash'), 500);
     });
     counterDecBtn.addEventListener('click', () => {
       const cur = parseInt(counterValueEl.textContent) || 0;
       const newVal = cur - 1;
       update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
         .catch(e => toast('❌ ' + e.message));
+      counterValueEl.classList.remove('flash');
+      void counterValueEl.offsetWidth;
+      counterValueEl.classList.add('flash');
+      setTimeout(() => counterValueEl.classList.remove('flash'), 500);
     });
 
     /* copy link */
