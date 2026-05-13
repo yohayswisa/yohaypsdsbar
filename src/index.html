@@ -369,6 +369,74 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Owner share banner ─────────────────────────── */
+    .owner-share-banner {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-right: 4px solid #7c3aed;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .owner-share-banner .banner-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #c4b5fd;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .owner-share-banner .banner-url-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .owner-share-banner .banner-url-input {
+      flex: 1;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: .85rem;
+      font-family: inherit;
+      outline: none;
+      direction: ltr;
+      text-align: left;
+    }
+    .owner-share-banner .banner-url-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.2);
+    }
+    .owner-share-banner .btn-copy {
+      padding: 10px 18px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 14px rgba(124,58,237,.4);
+    }
+    .owner-share-banner .btn-copy:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(124,58,237,.6);
+    }
+    .owner-share-banner .btn-copy:active { transform: scale(.97); }
+
+    /* ── Role subtitle ───────────────────────────────── */
+    #roleSubtitle {
+      color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
+
     /* ── Misc ───────────────────────────────────────── */
     .divider { height: 1px; background: var(--glass-border); margin: 4px 0 16px; }
   </style>
@@ -384,10 +452,20 @@
   <div class="page-header">
     <h1>📊 Control Dashboard</h1>
     <p id="headerSub">Loading…</p>
+    <p id="roleSubtitle"></p>
   </div>
 
   <!-- ── Display section ── -->
   <div id="displaySection">
+
+    <!-- Owner Share Banner (owner only, shown above everything) -->
+    <div id="ownerShareBanner" style="display:none;" class="owner-share-banner">
+      <div class="banner-title">🔗 You are the owner of this bar</div>
+      <div class="banner-url-row">
+        <input type="text" id="bannerShareUrl" class="banner-url-input" readonly />
+        <button class="btn-copy" id="bannerCopyBtn">📋 Copy Share Link</button>
+      </div>
+    </div>
 
     <!-- Main Progress Card -->
     <div class="card">
@@ -600,6 +678,10 @@
   const goalsList      = document.getElementById('goalsList');
   const statusDot      = document.getElementById('statusDot');
   const statusText     = document.getElementById('statusText');
+  const ownerShareBanner = document.getElementById('ownerShareBanner');
+  const bannerShareUrl    = document.getElementById('bannerShareUrl');
+  const bannerCopyBtn     = document.getElementById('bannerCopyBtn');
+  const roleSubtitle      = document.getElementById('roleSubtitle');
 
   /* ── Helpers ── */
   let toastTimer;
@@ -697,7 +779,18 @@
 
     const currentUid = user.uid;
     const urlParams  = new URLSearchParams(window.location.search);
-    const barUid     = urlParams.get('bar') || currentUid;
+    const barParam   = urlParams.get('bar');
+    let barUid;
+    if (barParam) {
+      barUid = barParam;
+    } else {
+      const storedOwner = localStorage.getItem('barOwnerUid');
+      if (storedOwner && storedOwner !== currentUid) {
+        barUid = storedOwner;
+      } else {
+        barUid = currentUid;
+      }
+    }
     const isOwner    = (currentUid === barUid);
 
     const barRef     = ref(db, 'bars/' + barUid);
@@ -712,19 +805,28 @@
     if (isOwner) {
       modeBadge.innerHTML = '<span class="mode-badge badge-owner">👑 Owner Mode</span>';
       headerSub.textContent = 'You control this dashboard';
+      roleSubtitle.textContent = 'You are the owner — share your link below';
       editPanel.style.display = 'block';
       shareLinkBox.style.display = 'block';
       viewerLinkText.textContent = viewerUrl;
       counterBtns.style.display = 'flex';
+      ownerShareBanner.style.display = 'block';
+      bannerShareUrl.value = viewerUrl;
     } else {
       modeBadge.innerHTML = '<span class="mode-badge badge-viewer">👁️ Viewer Mode</span>';
       headerSub.textContent = 'Live view — waiting for owner updates…';
+      roleSubtitle.textContent = 'Viewing in read-only mode';
+      ownerShareBanner.style.display = 'none';
     }
 
     /* ── Init owner data if first visit ── */
-    if (isOwner && !localStorage.getItem('barOwnerUid')) {
-      localStorage.setItem('barOwnerUid', currentUid);
-      set(ref(db, 'bars/' + currentUid + '/owner'), currentUid);
+    if (isOwner) {
+      if (!localStorage.getItem('barOwnerUid')) {
+        localStorage.setItem('barOwnerUid', currentUid);
+        set(ref(db, 'bars/' + currentUid + '/owner'), currentUid);
+      } else {
+        localStorage.setItem('barOwnerUid', currentUid);
+      }
     }
 
     /* ── Realtime listener ── */
@@ -831,6 +933,15 @@
 
       /* copy link */
       copyLinkBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(viewerUrl)
+          .then(() => toast('📋 Link copied!'))
+          .catch(() => {
+            prompt('Copy this link:', viewerUrl);
+          });
+      });
+
+      /* banner copy link */
+      bannerCopyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(viewerUrl)
           .then(() => toast('📋 Link copied!'))
           .catch(() => {
