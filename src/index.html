@@ -1,346 +1,849 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>בר שליטה - מערכת בעלים</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            direction: rtl;
-        }
-        .container {
-            max-width: 650px;
-            margin: 0 auto;
-        }
-        .card {
-            background: white;
-            border-radius: 30px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        }
-        .owner-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border: 3px solid #ff9800;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .bar-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 50px;
-            overflow: hidden;
-            margin: 20px 0;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .progress-bar {
-            width: 0%;
-            height: 60px;
-            background: linear-gradient(90deg, #4caf50, #8bc34a, #4caf50);
-            background-size: 200% 100%;
-            animation: shine 2s infinite;
-            border-radius: 50px;
-            text-align: center;
-            line-height: 60px;
-            color: white;
-            font-weight: bold;
-            font-size: 20px;
-            transition: width 0.5s ease;
-        }
-        @keyframes shine {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        .bar-text {
-            text-align: center;
-            font-size: 18px;
-            margin: 10px 0;
-            color: #555;
-        }
-        .control-group {
-            margin: 20px 0;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 15px;
-            font-size: 16px;
-            font-family: inherit;
-        }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #4caf50;
-        }
-        button {
-            background: linear-gradient(90deg, #4caf50, #45a049);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        button:hover {
-            transform: scale(1.02);
-        }
-        .mode-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .owner-mode {
-            background: #ff9800;
-            color: white;
-        }
-        .viewer-mode {
-            background: #2196f3;
-            color: white;
-        }
-        .link-box {
-            background: #f0f0f0;
-            padding: 10px;
-            border-radius: 10px;
-            margin: 15px 0;
-            word-break: break-all;
-            font-size: 12px;
-        }
-        .status {
-            text-align: center;
-            padding: 10px;
-            border-radius: 15px;
-            margin: 15px 0;
-        }
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Control Bar</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #7c3aed;
+      --accent2: #2563eb;
+      --glass-bg: rgba(255,255,255,0.05);
+      --glass-border: rgba(255,255,255,0.10);
+      --glass-hover: rgba(255,255,255,0.09);
+      --text-primary: #f1f5f9;
+      --text-secondary: rgba(241,245,249,0.65);
+      --radius: 16px;
+      --transition: 0.25s cubic-bezier(.4,0,.2,1);
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+      padding: 24px 16px 60px;
+      direction: rtl;
+    }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .container { max-width: 860px; margin: 0 auto; }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .page-header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .page-header p {
+      color: var(--text-secondary);
+      font-size: .95rem;
+    }
+
+    /* ── Glass card ─────────────────────────────────── */
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .card:hover { border-color: rgba(124,58,237,.35); box-shadow: 0 0 32px rgba(124,58,237,.12); }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Mode badge ─────────────────────────────────── */
+    .mode-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      margin-bottom: 18px;
+    }
+    .badge-owner { background: linear-gradient(90deg,#7c3aed,#2563eb); color:#fff; }
+    .badge-viewer { background: rgba(37,99,235,.25); border: 1px solid rgba(37,99,235,.5); color: #93c5fd; }
+
+    /* ── Main progress bar ───────────────────────────── */
+    .progress-wrap { margin: 18px 0 10px; }
+    .progress-label-row {
+      display: flex; justify-content: space-between;
+      font-size: .85rem; color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .progress-track {
+      width: 100%; height: 20px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), #06b6d4);
+      background-size: 200% 100%;
+      animation: gradShift 3s linear infinite;
+      box-shadow: 0 0 14px rgba(124,58,237,.55);
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+      position: relative;
+    }
+    @keyframes gradShift {
+      0%   { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    .bar-caption {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-top: 10px;
+    }
+
+    /* ── Widgets grid ───────────────────────────────── */
+    .widgets-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 600px) {
+      .widgets-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Countdown ──────────────────────────────────── */
+    .countdown-display {
+      display: flex; gap: 10px; justify-content: center;
+      margin-top: 10px; flex-wrap: wrap;
+    }
+    .cd-block {
+      background: rgba(255,255,255,.07);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: center;
+      min-width: 58px;
+    }
+    .cd-block .cd-num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.7rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    .cd-block .cd-label {
+      font-size: .65rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-top: 4px;
+    }
+    .cd-expired { text-align: center; color: #f87171; font-weight: 600; margin-top: 10px; }
+
+    /* ── Counter ────────────────────────────────────── */
+    .counter-display {
+      text-align: center;
+      margin-top: 8px;
+    }
+    .counter-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      transition: transform .15s;
+    }
+    .counter-value.bump { transform: scale(1.18); }
+    .counter-lbl { color: var(--text-secondary); font-size: .9rem; margin-top: 4px; }
+    .counter-btns { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+    .counter-btns button {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; color: #fff; font-size: 1.3rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 14px rgba(124,58,237,.4);
+    }
+    .counter-btns button:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(124,58,237,.6); }
+
+    /* ── Goals ──────────────────────────────────────── */
+    .goals-list { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+    .goal-item {}
+    .goal-item-header {
+      display: flex; justify-content: space-between;
+      font-size: .82rem; color: var(--text-secondary); margin-bottom: 5px;
+    }
+    .goal-track {
+      width: 100%; height: 8px;
+      background: rgba(255,255,255,.08);
+      border-radius: 999px; overflow: hidden;
+    }
+    .goal-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .5s ease;
+    }
+
+    /* ── Status Indicator ───────────────────────────── */
+    .status-display { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; }
+    .status-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 0 currentColor;
+    }
+    .status-dot.online  { background: #22c55e; animation: pulse-green 1.8s infinite; }
+    .status-dot.busy    { background: #f59e0b; animation: pulse-yellow 1.8s infinite; }
+    .status-dot.offline { background: #6b7280; }
+    @keyframes pulse-green  { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}  60%{box-shadow:0 0 0 10px rgba(34,197,94,0)} }
+    @keyframes pulse-yellow { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.5)} 60%{box-shadow:0 0 0 10px rgba(245,158,11,0)} }
+    .status-text { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+
+    /* ── Edit panel ─────────────────────────────────── */
+    #editPanel { margin-top: 8px; }
+    .edit-toggle {
+      width: 100%;
+      background: rgba(124,58,237,.15);
+      border: 1px solid rgba(124,58,237,.35);
+      color: #c4b5fd;
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      font-size: .95rem; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background var(--transition);
+    }
+    .edit-toggle:hover { background: rgba(124,58,237,.28); }
+    .edit-toggle .chevron { transition: transform var(--transition); }
+    .edit-toggle.open .chevron { transform: rotate(180deg); }
+
+    .edit-body {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .45s cubic-bezier(.4,0,.2,1);
+    }
+    .edit-body.open { max-height: 1600px; }
+
+    .edit-inner { padding-top: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+    .edit-section {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .edit-section h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: .9rem; font-weight: 600;
+      color: #a78bfa; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .form-row { margin-bottom: 12px; }
+    .form-row label {
+      display: block; font-size: .82rem;
+      color: var(--text-secondary); margin-bottom: 5px; font-weight: 500;
+    }
+    .form-row input,
+    .form-row textarea,
+    .form-row select {
+      width: 100%; padding: 10px 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px; color: var(--text-primary);
+      font-size: .9rem; font-family: inherit;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .form-row input:focus,
+    .form-row textarea:focus,
+    .form-row select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.2);
+    }
+    .form-row select option { background: #1a0a2e; }
+
+    .goals-edit-list { display: flex; flex-direction: column; gap: 10px; }
+    .goal-edit-row {
+      display: grid; grid-template-columns: 1fr 90px;
+      gap: 8px; align-items: center;
+    }
+
+    /* ── Buttons ────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 11px 22px; border-radius: 10px; border: none;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(124,58,237,.4);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 24px rgba(124,58,237,.6); }
+    .btn-secondary {
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.13); }
+    .btn-full { width: 100%; }
+
+    /* ── Link box ───────────────────────────────────── */
+    .link-box {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: .78rem; color: var(--text-secondary);
+      word-break: break-all; margin-top: 10px;
+      line-height: 1.6;
+    }
+
+    /* ── Toast / status ─────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: rgba(30,20,60,.95);
+      border: 1px solid rgba(124,58,237,.5);
+      color: #e9d5ff;
+      padding: 11px 22px; border-radius: 999px;
+      font-size: .88rem; font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .35s;
+      opacity: 0; pointer-events: none; z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* ── Spinner ────────────────────────────────────── */
+    #loadingOverlay {
+      position: fixed; inset: 0;
+      background: #0a0a1a;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; transition: opacity .4s;
+    }
+    .spinner {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid rgba(124,58,237,.2);
+      border-top-color: var(--accent);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Misc ───────────────────────────────────────── */
+    .divider { height: 1px; background: var(--glass-border); margin: 4px 0 16px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card" id="viewerCard">
-            <div id="modeBadge"></div>
-            <h1>📊 בר התקדמות</h1>
-            <div class="subtitle" id="viewerSubtitle">מציג את הנתונים המעודכנים</div>
 
-            <div class="bar-container">
-                <div class="progress-bar" id="progressBar">0%</div>
-            </div>
-            <div class="bar-text" id="barText">טוען...</div>
-            <div id="statusMessage"></div>
+<div id="loadingOverlay"><div class="spinner"></div></div>
+<div id="toast"></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>📊 Control Dashboard</h1>
+    <p id="headerSub">Loading…</p>
+  </div>
+
+  <!-- ── Display section ── -->
+  <div id="displaySection">
+
+    <!-- Main Progress Card -->
+    <div class="card">
+      <div id="modeBadge"></div>
+      <div class="card-title"><span class="icon">📈</span> Progress Bar</div>
+      <div class="progress-wrap">
+        <div class="progress-label-row">
+          <span id="barCaption">—</span>
+          <span id="barPct">0%</span>
         </div>
-
-        <div class="card owner-card" id="ownerPanel" style="display: none;">
-            <h2>🔐 פאנל שליטה - בעלים</h2>
-            <div class="control-group">
-                <label>אחוז (0-100):</label>
-                <input type="number" id="percentInput" min="0" max="100" value="50">
-            </div>
-            <div class="control-group">
-                <label>טקסט שיופיע:</label>
-                <textarea id="textInput" rows="2" placeholder="מה כתוב על הבר?"></textarea>
-            </div>
-            <button id="updateBtn">🚀 עדכן את הבר</button>
-
-            <div class="link-box">
-                <strong>🔗 קישור לצופים:</strong><br>
-                <span id="viewerLink"></span>
-                <button id="copyLinkBtn" style="margin-top: 5px; background: #2196f3;">📋 העתק קישור</button>
-            </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
         </div>
+      </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    <!-- Widgets 2-col grid -->
+    <div class="widgets-grid">
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
-            authDomain: "tiktok-bar-26335.firebaseapp.com",
-            projectId: "tiktok-bar-26335",
-            storageBucket: "tiktok-bar-26335.firebasestorage.app",
-            messagingSenderId: "418257627680",
-            appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45",
-            measurementId: "G-2549WJGSTH"
-        };
+      <!-- Countdown Timer -->
+      <div class="card" id="wCountdown">
+        <div class="card-title"><span class="icon">⏳</span> Countdown</div>
+        <div id="countdownDisplay">
+          <div class="countdown-display">
+            <div class="cd-block"><div class="cd-num" id="cdDays">--</div><div class="cd-label">Days</div></div>
+            <div class="cd-block"><div class="cd-num" id="cdHours">--</div><div class="cd-label">Hrs</div></div>
+            <div class="cd-block"><div class="cd-num" id="cdMins">--</div><div class="cd-label">Min</div></div>
+            <div class="cd-block"><div class="cd-num" id="cdSecs">--</div><div class="cd-label">Sec</div></div>
+          </div>
+        </div>
+      </div>
 
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const db = getDatabase(app);
-        const auth = getAuth(app);
+      <!-- Numeric Counter -->
+      <div class="card" id="wCounter">
+        <div class="card-title"><span class="icon">🔢</span> Counter</div>
+        <div class="counter-display">
+          <div class="counter-value" id="counterValue">0</div>
+          <div class="counter-lbl" id="counterLabel">Count</div>
+        </div>
+        <div class="counter-btns" id="counterBtns" style="display:none;">
+          <button id="counterDec" title="Decrease">−</button>
+          <button id="counterInc" title="Increase">+</button>
+        </div>
+      </div>
 
-        const viewerCard = document.getElementById('viewerCard');
-        const ownerPanel = document.getElementById('ownerPanel');
-        const modeBadge = document.getElementById('modeBadge');
-        const viewerSubtitle = document.getElementById('viewerSubtitle');
-        const progressBar = document.getElementById('progressBar');
-        const barText = document.getElementById('barText');
-        const statusMessage = document.getElementById('statusMessage');
-        const percentInput = document.getElementById('percentInput');
-        const textInput = document.getElementById('textInput');
-        const updateBtn = document.getElementById('updateBtn');
-        const viewerLinkSpan = document.getElementById('viewerLink');
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
+      <!-- Goal Tracker -->
+      <div class="card" id="wGoals">
+        <div class="card-title"><span class="icon">🎯</span> Goal Tracker</div>
+        <div class="goals-list" id="goalsList"></div>
+      </div>
 
-        // Sign in anonymously and set up the app
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const currentUid = user.uid;
-                const storedOwnerUid = localStorage.getItem('barOwnerUid');
+      <!-- Status Indicator -->
+      <div class="card" id="wStatus">
+        <div class="card-title"><span class="icon">🟢</span> Status</div>
+        <div class="status-display">
+          <div class="status-dot offline" id="statusDot"></div>
+          <div class="status-text" id="statusText">Offline</div>
+        </div>
+      </div>
 
-                // Determine which bar to display: if URL has ?bar=<uid>, show that bar; otherwise show own bar
-                const urlParams = new URLSearchParams(window.location.search);
-                const barUid = urlParams.get('bar') || currentUid;
+    </div><!-- /widgets-grid -->
 
-                const barRef = ref(db, 'bars/' + barUid);
+    <!-- Share link (owner only) -->
+    <div id="shareLinkBox" style="display:none;" class="card">
+      <div class="card-title"><span class="icon">🔗</span> Share Link</div>
+      <div class="link-box" id="viewerLinkText"></div>
+      <button class="btn btn-secondary btn-full" id="copyLinkBtn" style="margin-top:12px;">📋 Copy Share Link</button>
+    </div>
 
-                // Check if current user is the owner of this bar
-                const isOwner = (currentUid === barUid);
+  </div><!-- /displaySection -->
 
-                const currentUrl = window.location.href.split('?')[0];
-                const viewerUrl = currentUrl + '?bar=' + barUid;
+  <!-- ── Edit Panel (owner only) ── -->
+  <div id="editPanel" style="display:none;">
+    <button class="edit-toggle" id="editToggle">
+      <span>⚙️ Edit Panel</span>
+      <span class="chevron">▼</span>
+    </button>
+    <div class="edit-body" id="editBody">
+      <div class="edit-inner">
 
-                if (viewerLinkSpan) viewerLinkSpan.textContent = viewerUrl;
+        <!-- Progress -->
+        <div class="edit-section">
+          <h3>📈 Progress Bar</h3>
+          <div class="form-row">
+            <label>Percent (0-100)</label>
+            <input type="number" id="percentInput" min="0" max="100" value="50" />
+          </div>
+          <div class="form-row">
+            <label>Caption Text</label>
+            <textarea id="textInput" rows="2" placeholder="What does the bar represent?"></textarea>
+          </div>
+          <button class="btn btn-primary btn-full" id="updateBarBtn">🚀 Update Bar</button>
+        </div>
 
-                // Store owner UID when first creating a bar (on first visit with no stored owner)
-                if (!storedOwnerUid) {
-                    localStorage.setItem('barOwnerUid', currentUid);
-                    // Write owner marker for this user's bar
-                    const ownerMarkerRef = ref(db, 'bars/' + currentUid + '/owner');
-                    set(ownerMarkerRef, currentUid);
-                }
+        <!-- Countdown -->
+        <div class="edit-section">
+          <h3>⏳ Countdown Timer</h3>
+          <div class="form-row">
+            <label>Target Date & Time</label>
+            <input type="datetime-local" id="countdownInput" />
+          </div>
+          <button class="btn btn-primary btn-full" id="updateCountdownBtn">💾 Save Countdown</button>
+        </div>
 
-                if (isOwner) {
-                    // Owner mode: show edit controls
-                    modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
-                    viewerSubtitle.textContent = '🔧 אתה הבעלים - תוכל לערוך את הבר למטה';
-                    ownerPanel.style.display = 'block';
+        <!-- Counter -->
+        <div class="edit-section">
+          <h3>🔢 Numeric Counter</h3>
+          <div class="form-row">
+            <label>Label</label>
+            <input type="text" id="counterLabelInput" placeholder="e.g. Subscribers" />
+          </div>
+          <div class="form-row">
+            <label>Initial Value</label>
+            <input type="number" id="counterValueInput" value="0" />
+          </div>
+          <button class="btn btn-primary btn-full" id="updateCounterBtn">💾 Save Counter</button>
+        </div>
 
-                    // Load existing data
-                    onValue(barRef, (snapshot) => {
-                        const data = snapshot.val();
-                        if (data) {
-                            percentInput.value = data.percent || 50;
-                            textInput.value = data.text || '';
-                            updateDisplay(data.percent || 50, data.text || '');
-                        } else {
-                            // Initial data
-                            set(barRef, { owner: currentUid, percent: 50, text: 'בר מצב רוח' });
-                            updateDisplay(50, 'בר מצב רוח');
-                        }
-                    });
+        <!-- Goals -->
+        <div class="edit-section">
+          <h3>🎯 Goal Tracker (up to 4)</h3>
+          <div class="goals-edit-list" id="goalsEditList">
+            <div class="goal-edit-row"><input type="text" placeholder="Goal label" class="g-label" /><input type="number" min="0" max="100" value="0" placeholder="%" class="g-pct" /></div>
+            <div class="goal-edit-row"><input type="text" placeholder="Goal label" class="g-label" /><input type="number" min="0" max="100" value="0" placeholder="%" class="g-pct" /></div>
+            <div class="goal-edit-row"><input type="text" placeholder="Goal label" class="g-label" /><input type="number" min="0" max="100" value="0" placeholder="%" class="g-pct" /></div>
+            <div class="goal-edit-row"><input type="text" placeholder="Goal label" class="g-label" /><input type="number" min="0" max="100" value="0" placeholder="%" class="g-pct" /></div>
+          </div>
+          <button class="btn btn-primary btn-full" id="updateGoalsBtn" style="margin-top:12px;">💾 Save Goals</button>
+        </div>
 
-                    // Manual update
-                    updateBtn.addEventListener('click', () => {
-                        let percent = parseInt(percentInput.value);
-                        if (isNaN(percent)) percent = 0;
-                        percent = Math.min(100, Math.max(0, percent));
-                        const text = textInput.value || 'התקדמות';
+        <!-- Status -->
+        <div class="edit-section">
+          <h3>🟢 Status Indicator</h3>
+          <div class="form-row">
+            <label>Current Status</label>
+            <select id="statusSelect">
+              <option value="online">🟢 Online</option>
+              <option value="busy">🟡 Busy</option>
+              <option value="offline" selected>⚫ Offline</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-full" id="updateStatusBtn">💾 Save Status</button>
+        </div>
 
-                        set(barRef, { owner: currentUid, percent: percent, text: text })
-                            .then(() => {
-                                showStatus('✅ עודכן בהצלחה!', 'success');
-                                updateDisplay(percent, text);
-                            })
-                            .catch((error) => {
-                                showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
-                            });
-                    });
-                } else {
-                    // Viewer mode: read-only progress bar view
-                    modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בבר המעודכן</span>';
-                    viewerSubtitle.textContent = 'ממתין לעדכונים מהבעלים...';
+      </div><!-- /edit-inner -->
+    </div><!-- /edit-body -->
+  </div><!-- /editPanel -->
 
-                    onValue(barRef, (snapshot) => {
-                        const data = snapshot.val();
-                        if (data) {
-                            updateDisplay(data.percent || 0, data.text || '');
-                            showStatus('🔄 התקבל עדכון חדש מהבעלים!', 'success');
-                            setTimeout(() => {
-                                const statusDiv = document.getElementById('statusMessage');
-                                if (statusDiv) statusDiv.style.display = 'none';
-                            }, 2000);
-                        } else {
-                            updateDisplay(0, 'ממתין לנתונים...');
-                        }
-                    });
+</div><!-- /container -->
 
-                    // Initial message for viewers
-                    setTimeout(() => {
-                        showStatus('💡 ממתין לעדכונים מהבעלים... ההגדרות הראשונות יופיעו בקרוב', 'success');
-                    }, 1000);
-                }
+<script type="module">
+  import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+  import { getAnalytics }           from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-                // Copy link handler
-                if (copyLinkBtn) {
-                    copyLinkBtn.addEventListener('click', () => {
-                        navigator.clipboard.writeText(viewerUrl);
-                        alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הבר');
-                    });
-                }
-            }
+  /* ── Firebase config (unchanged) ── */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
+    authDomain:        "tiktok-bar-26335.firebaseapp.com",
+    projectId:         "tiktok-bar-26335",
+    storageBucket:     "tiktok-bar-26335.firebasestorage.app",
+    messagingSenderId: "418257627680",
+    appId:             "1:418257627680:web:4fbf9a1fd841a14e7eea45",
+    measurementId:     "G-2549WJGSTH"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const db   = getDatabase(app);
+  const auth = getAuth(app);
+
+  /* ── DOM refs ── */
+  const loadingOverlay  = document.getElementById('loadingOverlay');
+  const toastEl         = document.getElementById('toast');
+  const headerSub       = document.getElementById('headerSub');
+  const modeBadge       = document.getElementById('modeBadge');
+  const progressFill    = document.getElementById('progressFill');
+  const barCaption      = document.getElementById('barCaption');
+  const barPct          = document.getElementById('barPct');
+  const shareLinkBox    = document.getElementById('shareLinkBox');
+  const viewerLinkText  = document.getElementById('viewerLinkText');
+  const copyLinkBtn     = document.getElementById('copyLinkBtn');
+  const editPanel       = document.getElementById('editPanel');
+  const editToggle      = document.getElementById('editToggle');
+  const editBody        = document.getElementById('editBody');
+  // edit inputs
+  const percentInput      = document.getElementById('percentInput');
+  const textInput         = document.getElementById('textInput');
+  const updateBarBtn      = document.getElementById('updateBarBtn');
+  const countdownInput    = document.getElementById('countdownInput');
+  const updateCountdownBtn= document.getElementById('updateCountdownBtn');
+  const counterLabelInput = document.getElementById('counterLabelInput');
+  const counterValueInput = document.getElementById('counterValueInput');
+  const updateCounterBtn  = document.getElementById('updateCounterBtn');
+  const goalsEditList     = document.getElementById('goalsEditList');
+  const updateGoalsBtn    = document.getElementById('updateGoalsBtn');
+  const statusSelect      = document.getElementById('statusSelect');
+  const updateStatusBtn   = document.getElementById('updateStatusBtn');
+  // display widgets
+  const cdDays      = document.getElementById('cdDays');
+  const cdHours     = document.getElementById('cdHours');
+  const cdMins      = document.getElementById('cdMins');
+  const cdSecs      = document.getElementById('cdSecs');
+  const counterValueEl = document.getElementById('counterValue');
+  const counterLabelEl = document.getElementById('counterLabel');
+  const counterBtns    = document.getElementById('counterBtns');
+  const counterDecBtn  = document.getElementById('counterDec');
+  const counterIncBtn  = document.getElementById('counterInc');
+  const goalsList      = document.getElementById('goalsList');
+  const statusDot      = document.getElementById('statusDot');
+  const statusText     = document.getElementById('statusText');
+
+  /* ── Helpers ── */
+  let toastTimer;
+  function toast(msg, duration = 2800) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+  }
+
+  function pad(n) { return String(Math.max(0, Math.floor(n))).padStart(2, '0'); }
+
+  /* ── Countdown logic ── */
+  let cdInterval = null;
+  function startCountdown(isoTarget) {
+    if (cdInterval) clearInterval(cdInterval);
+    const target = new Date(isoTarget).getTime();
+
+    function tick() {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        cdDays.textContent = cdHours.textContent = cdMins.textContent = cdSecs.textContent = '00';
+        clearInterval(cdInterval);
+        const box = document.querySelector('#wCountdown .countdown-display');
+        if (box) box.insertAdjacentHTML('afterend', '<div class="cd-expired">🎉 Time\'s up!</div>');
+        return;
+      }
+      const totalSecs = diff / 1000;
+      cdDays.textContent  = pad(totalSecs / 86400);
+      cdHours.textContent = pad((totalSecs % 86400) / 3600);
+      cdMins.textContent  = pad((totalSecs % 3600) / 60);
+      cdSecs.textContent  = pad(totalSecs % 60);
+    }
+    tick();
+    cdInterval = setInterval(tick, 1000);
+  }
+
+  /* ── Counter display ── */
+  let _counterAnimTimer;
+  function renderCounter(val, label) {
+    counterValueEl.textContent = val ?? 0;
+    counterLabelEl.textContent = label || 'Count';
+    counterValueEl.classList.add('bump');
+    clearTimeout(_counterAnimTimer);
+    _counterAnimTimer = setTimeout(() => counterValueEl.classList.remove('bump'), 200);
+  }
+
+  /* ── Goals display ── */
+  function renderGoals(goals) {
+    goalsList.innerHTML = '';
+    if (!goals || !goals.length) {
+      goalsList.innerHTML = '<div style="color:var(--text-secondary);font-size:.85rem;">No goals set.</div>';
+      return;
+    }
+    goals.forEach(g => {
+      if (!g || !g.label) return;
+      const pct = Math.min(100, Math.max(0, g.percent || 0));
+      goalsList.insertAdjacentHTML('beforeend', `
+        <div class="goal-item">
+          <div class="goal-item-header"><span>${g.label}</span><span>${pct}%</span></div>
+          <div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>
+        </div>`);
+    });
+  }
+
+  /* ── Status display ── */
+  const STATUS_MAP = {
+    online:  { label: '🟢 Online',  cls: 'online' },
+    busy:    { label: '🟡 Busy',    cls: 'busy'   },
+    offline: { label: '⚫ Offline', cls: 'offline' },
+  };
+  function renderStatus(s) {
+    const m = STATUS_MAP[s] || STATUS_MAP.offline;
+    statusDot.className = 'status-dot ' + m.cls;
+    statusText.textContent = m.label;
+  }
+
+  /* ── Progress display ── */
+  function renderProgress(percent, text) {
+    const p = Math.min(100, Math.max(0, percent || 0));
+    progressFill.style.width = p + '%';
+    barPct.textContent = p + '%';
+    barCaption.textContent = text || '—';
+  }
+
+  /* ── Edit panel toggle ── */
+  editToggle.addEventListener('click', () => {
+    editToggle.classList.toggle('open');
+    editBody.classList.toggle('open');
+  });
+
+  /* ── Auth + main logic ── */
+  onAuthStateChanged(auth, (user) => {
+    if (!user) return;
+
+    const currentUid = user.uid;
+    const urlParams  = new URLSearchParams(window.location.search);
+    const barUid     = urlParams.get('bar') || currentUid;
+    const isOwner    = (currentUid === barUid);
+
+    const barRef     = ref(db, 'bars/' + barUid);
+    const currentUrl = window.location.href.split('?')[0];
+    const viewerUrl  = currentUrl + '?bar=' + barUid;
+
+    /* hide loader */
+    loadingOverlay.style.opacity = '0';
+    setTimeout(() => loadingOverlay.style.display = 'none', 400);
+
+    /* mode badge + header */
+    if (isOwner) {
+      modeBadge.innerHTML = '<span class="mode-badge badge-owner">👑 Owner Mode</span>';
+      headerSub.textContent = 'You control this dashboard';
+      editPanel.style.display = 'block';
+      shareLinkBox.style.display = 'block';
+      viewerLinkText.textContent = viewerUrl;
+      counterBtns.style.display = 'flex';
+    } else {
+      modeBadge.innerHTML = '<span class="mode-badge badge-viewer">👁️ Viewer Mode</span>';
+      headerSub.textContent = 'Live view — waiting for owner updates…';
+    }
+
+    /* ── Init owner data if first visit ── */
+    if (isOwner && !localStorage.getItem('barOwnerUid')) {
+      localStorage.setItem('barOwnerUid', currentUid);
+      set(ref(db, 'bars/' + currentUid + '/owner'), currentUid);
+    }
+
+    /* ── Realtime listener ── */
+    onValue(barRef, (snap) => {
+      const data = snap.val() || {};
+
+      // progress
+      if (isOwner) {
+        percentInput.value = data.percent ?? 50;
+        textInput.value    = data.text    ?? '';
+      }
+      renderProgress(data.percent ?? 50, data.text ?? '');
+
+      // countdown
+      if (data.countdown) {
+        if (isOwner) countdownInput.value = data.countdown.slice(0,16);
+        startCountdown(data.countdown);
+      }
+
+      // counter
+      const counter = data.counter || { value: 0, label: 'Count' };
+      if (isOwner) {
+        counterLabelInput.value = counter.label;
+        counterValueInput.value = counter.value;
+      }
+      renderCounter(counter.value, counter.label);
+
+      // goals
+      const goals = data.goals || [];
+      if (isOwner) {
+        const rows = goalsEditList.querySelectorAll('.goal-edit-row');
+        rows.forEach((row, i) => {
+          row.querySelector('.g-label').value = (goals[i] && goals[i].label) ? goals[i].label : '';
+          row.querySelector('.g-pct').value   = (goals[i] && goals[i].percent != null) ? goals[i].percent : 0;
         });
+      }
+      renderGoals(goals);
 
-        // Trigger anonymous sign-in
-        signInAnonymously(auth).catch((error) => {
-            console.error('Firebase anonymous sign-in failed:', error);
+      // status
+      if (isOwner && data.status) statusSelect.value = data.status;
+      renderStatus(data.status || 'offline');
+    });
+
+    /* ── Owner: update bar ── */
+    if (isOwner) {
+      updateBarBtn.addEventListener('click', () => {
+        let pct = parseInt(percentInput.value);
+        if (isNaN(pct)) pct = 0;
+        pct = Math.min(100, Math.max(0, pct));
+        const txt = textInput.value.trim() || 'Progress';
+        update(barRef, { percent: pct, text: txt })
+          .then(() => toast('✅ Bar updated!'))
+          .catch(e => toast('❌ Error: ' + e.message));
+      });
+
+      updateCountdownBtn.addEventListener('click', () => {
+        const val = countdownInput.value;
+        if (!val) { toast('⚠️ Pick a date first'); return; }
+        update(barRef, { countdown: new Date(val).toISOString() })
+          .then(() => toast('✅ Countdown saved!'))
+          .catch(e => toast('❌ Error: ' + e.message));
+      });
+
+      updateCounterBtn.addEventListener('click', () => {
+        const label = counterLabelInput.value.trim() || 'Count';
+        const value = parseInt(counterValueInput.value) || 0;
+        update(barRef, { counter: { label, value } })
+          .then(() => toast('✅ Counter saved!'))
+          .catch(e => toast('❌ Error: ' + e.message));
+      });
+
+      updateGoalsBtn.addEventListener('click', () => {
+        const rows  = goalsEditList.querySelectorAll('.goal-edit-row');
+        const goals = [];
+        rows.forEach(row => {
+          const label = row.querySelector('.g-label').value.trim();
+          const pct   = parseInt(row.querySelector('.g-pct').value) || 0;
+          if (label) goals.push({ label, percent: Math.min(100, Math.max(0, pct)) });
         });
+        update(barRef, { goals })
+          .then(() => toast('✅ Goals saved!'))
+          .catch(e => toast('❌ Error: ' + e.message));
+      });
 
-        function updateDisplay(percent, text) {
-            const displayPercent = percent || 0;
-            progressBar.style.width = displayPercent + '%';
-            progressBar.textContent = displayPercent + '%';
-            if (text) {
-                barText.textContent = text;
-            } else {
-                barText.textContent = 'התקדמות: ' + displayPercent + '%';
-            }
-        }
+      updateStatusBtn.addEventListener('click', () => {
+        update(barRef, { status: statusSelect.value })
+          .then(() => toast('✅ Status updated!'))
+          .catch(e => toast('❌ Error: ' + e.message));
+      });
 
-        function showStatus(msg, type) {
-            statusMessage.innerHTML = `<div class="status status-${type === 'success' ? 'success' : 'error'}">${msg}</div>`;
-            setTimeout(() => {
-                if (statusMessage.innerHTML.includes(msg)) {
-                    statusMessage.innerHTML = '';
-                }
-            }, 3000);
-        }
-    </script>
+      /* inline +/- counter buttons */
+      counterIncBtn.addEventListener('click', () => {
+        const cur = parseInt(counterValueEl.textContent) || 0;
+        const newVal = cur + 1;
+        update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
+          .catch(e => toast('❌ ' + e.message));
+      });
+      counterDecBtn.addEventListener('click', () => {
+        const cur = parseInt(counterValueEl.textContent) || 0;
+        const newVal = cur - 1;
+        update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
+          .catch(e => toast('❌ ' + e.message));
+      });
+
+      /* copy link */
+      copyLinkBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(viewerUrl)
+          .then(() => toast('📋 Link copied!'))
+          .catch(() => {
+            prompt('Copy this link:', viewerUrl);
+          });
+      });
+    }
+  });
+
+  signInAnonymously(auth).catch(err => {
+    console.error('Anonymous sign-in failed:', err);
+    document.getElementById('loadingOverlay').style.display = 'none';
+  });
+</script>
 </body>
 </html>
