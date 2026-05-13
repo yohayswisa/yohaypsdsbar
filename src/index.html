@@ -437,11 +437,82 @@
       margin-top: 2px;
     }
 
+    /* ── Password modal ───────────────────────────────── */
+    #passwordModal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.82);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    #passwordModal.hidden { display: none; }
+    .pw-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      width: 100%; max-width: 380px;
+      text-align: center;
+    }
+    .pw-card h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.25rem; font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+    }
+    .pw-card input {
+      width: 100%; padding: 11px 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px; color: var(--text-primary);
+      font-size: .9rem; font-family: inherit;
+      margin-bottom: 12px;
+      direction: ltr; text-align: left;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .pw-card input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.2);
+    }
+    .pw-card .btn-pw {
+      width: 100%;
+      padding: 12px 22px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 10px;
+      font-size: .95rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 18px rgba(124,58,237,.4);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .pw-card .btn-pw:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,58,237,.6); }
+    .pw-card .btn-pw:active { transform: scale(.97); }
+    .pw-error {
+      color: #f87171; font-size: .85rem; margin-top: 10px;
+      min-height: 1.2em;
+    }
+
     /* ── Misc ───────────────────────────────────────── */
     .divider { height: 1px; background: var(--glass-border); margin: 4px 0 16px; }
   </style>
 </head>
 <body>
+
+<!-- Password Modal (owner route only) -->
+<div id="passwordModal" class="hidden">
+  <div class="pw-card">
+    <h2>🔐 Owner Access</h2>
+    <input type="password" id="pwInput" placeholder="Password" autocomplete="off" />
+    <input type="password" id="pwConfirmInput" placeholder="Confirm Password" autocomplete="off" style="display:none;" />
+    <button class="btn-pw" id="pwSubmitBtn">Submit</button>
+    <div class="pw-error" id="pwError"></div>
+  </div>
+</div>
 
 <div id="loadingOverlay"><div class="spinner"></div></div>
 <div id="toast"></div>
@@ -465,6 +536,7 @@
         <input type="text" id="bannerShareUrl" class="banner-url-input" readonly />
         <button class="btn-copy" id="bannerCopyBtn">📋 Copy Share Link</button>
       </div>
+      <div style="margin-top:10px;font-size:.8rem;color:var(--text-secondary);">📌 Bookmark the /owner page to edit your bar</div>
     </div>
 
     <!-- Main Progress Card -->
@@ -533,6 +605,7 @@
       <div class="card-title"><span class="icon">🔗</span> Share Link</div>
       <div class="link-box" id="viewerLinkText"></div>
       <button class="btn btn-secondary btn-full" id="copyLinkBtn" style="margin-top:12px;">📋 Copy Share Link</button>
+      <div style="margin-top:10px;font-size:.8rem;color:var(--text-secondary);">📌 Bookmark the /owner page to edit your bar</div>
     </div>
 
   </div><!-- /displaySection -->
@@ -618,9 +691,12 @@
 
 <script type="module">
   import { initializeApp }          from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+  import { getDatabase, ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
   import { getAnalytics }           from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+  /* ── Route detection ── */
+  const isOwnerRoute = window.location.pathname === '/owner';
 
   /* ── Firebase config (unchanged) ── */
   const firebaseConfig = {
@@ -682,6 +758,11 @@
   const bannerShareUrl    = document.getElementById('bannerShareUrl');
   const bannerCopyBtn     = document.getElementById('bannerCopyBtn');
   const roleSubtitle      = document.getElementById('roleSubtitle');
+  const passwordModal      = document.getElementById('passwordModal');
+  const pwInput            = document.getElementById('pwInput');
+  const pwConfirmInput     = document.getElementById('pwConfirmInput');
+  const pwSubmitBtn        = document.getElementById('pwSubmitBtn');
+  const pwError            = document.getElementById('pwError');
 
   /* ── Helpers ── */
   let toastTimer;
@@ -693,6 +774,15 @@
   }
 
   function pad(n) { return String(Math.max(0, Math.floor(n))).padStart(2, '0'); }
+
+  /* ── Password hashing utility ── */
+  async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
   /* ── Countdown logic ── */
   let cdInterval = null;
@@ -774,182 +864,266 @@
   });
 
   /* ── Auth + main logic ── */
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
     const currentUid = user.uid;
     const urlParams  = new URLSearchParams(window.location.search);
     const barParam   = urlParams.get('bar');
-    let barUid;
-    if (barParam) {
-      barUid = barParam;
-    } else {
-      const storedOwner = localStorage.getItem('barOwnerUid');
-      if (storedOwner && storedOwner !== currentUid) {
-        barUid = storedOwner;
+
+    if (isOwnerRoute) {
+      /* ── Owner route ── */
+      const barUid  = currentUid;
+      const barRef  = ref(db, 'bars/' + barUid);
+      const currentUrl = window.location.href.split('/owner')[0];
+      const viewerUrl  = currentUrl + '/?bar=' + barUid;
+
+      /* Check if password is already set */
+      const pwSnap = await get(ref(db, 'bars/' + barUid + '/passwordHash'));
+      const hasPassword = pwSnap.exists() && !!pwSnap.val();
+
+      /* Show password modal */
+      passwordModal.classList.remove('hidden');
+      if (hasPassword) {
+        pwConfirmInput.style.display = 'none';
+        pwSubmitBtn.textContent = '🔓 Enter Password';
+        pwInput.placeholder = 'Enter Password';
       } else {
-        barUid = currentUid;
+        pwConfirmInput.style.display = 'block';
+        pwSubmitBtn.textContent = '🔑 Set Password';
+        pwInput.placeholder = 'Set Password';
+      }
+
+      /* hide main loader */
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => loadingOverlay.style.display = 'none', 400);
+
+      /* Handle password submission */
+      pwSubmitBtn.addEventListener('click', async function handlePwSubmit() {
+        const pw = pwInput.value.trim();
+        if (!pw) { pwError.textContent = 'Password cannot be empty'; return; }
+
+        if (!hasPassword) {
+          /* Set new password */
+          const confirm = pwConfirmInput.value.trim();
+          if (pw !== confirm) { pwError.textContent = 'Passwords do not match'; return; }
+          if (pw.length < 4) { pwError.textContent = 'Password must be at least 4 characters'; return; }
+          try {
+            const hash = await hashPassword(pw);
+            await update(ref(db, 'bars/' + barUid), { passwordHash: hash, owner: currentUid });
+            passwordModal.classList.add('hidden');
+            pwSubmitBtn.removeEventListener('click', handlePwSubmit);
+            initOwnerView(barUid, barRef, viewerUrl);
+          } catch (e) {
+            pwError.textContent = 'Error: ' + e.message;
+          }
+        } else {
+          /* Verify existing password */
+          try {
+            const hash = await hashPassword(pw);
+            const storedHash = pwSnap.val();
+            if (hash === storedHash) {
+              passwordModal.classList.add('hidden');
+              pwSubmitBtn.removeEventListener('click', handlePwSubmit);
+              initOwnerView(barUid, barRef, viewerUrl);
+            } else {
+              pwError.textContent = 'Incorrect password';
+              pwInput.value = '';
+            }
+          } catch (e) {
+            pwError.textContent = 'Error: ' + e.message;
+          }
+        }
+      });
+
+      /* Allow Enter key to submit */
+      pwInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pwSubmitBtn.click(); });
+      pwConfirmInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') pwSubmitBtn.click(); });
+
+    } else {
+      /* ── Viewer route ── */
+      const isOwner = false;
+
+      if (barParam) {
+        /* View specific bar */
+        const barUid = barParam;
+        const barRef = ref(db, 'bars/' + barUid);
+        const currentUrl = window.location.href.split('?')[0];
+        const viewerUrl  = currentUrl + '?bar=' + barUid;
+
+        /* hide loader */
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => loadingOverlay.style.display = 'none', 400);
+
+        /* mode badge + header */
+        modeBadge.innerHTML = '<span class="mode-badge badge-viewer">👁️ Viewer Mode</span>';
+        headerSub.textContent = 'Live view — waiting for owner updates…';
+        roleSubtitle.textContent = 'Viewing in read-only mode';
+        ownerShareBanner.style.display = 'none';
+        editPanel.style.display = 'none';
+        shareLinkBox.style.display = 'none';
+        counterBtns.style.display = 'none';
+
+        /* Realtime listener (viewer, no edit) */
+        onValue(barRef, (snap) => {
+          const data = snap.val() || {};
+          renderProgress(data.percent ?? 50, data.text ?? '');
+          if (data.countdown) startCountdown(data.countdown);
+          const counter = data.counter || { value: 0, label: 'Count' };
+          renderCounter(counter.value, counter.label);
+          renderGoals(data.goals || []);
+          renderStatus(data.status || 'offline');
+        });
+
+      } else {
+        /* No bar param — show message */
+        loadingOverlay.style.opacity = '0';
+        setTimeout(() => loadingOverlay.style.display = 'none', 400);
+
+        modeBadge.innerHTML = '<span class="mode-badge badge-viewer">👁️ Viewer Mode</span>';
+        headerSub.textContent = 'Use the share link to view a bar';
+        roleSubtitle.textContent = 'Viewing in read-only mode';
+        ownerShareBanner.style.display = 'none';
+        editPanel.style.display = 'none';
+        shareLinkBox.style.display = 'none';
+        counterBtns.style.display = 'none';
+        document.getElementById('displaySection').innerHTML =
+          '<div class="card" style="text-align:center;padding:40px 24px;">' +
+          '<div style="font-size:2rem;margin-bottom:12px;">🔗</div>' +
+          '<div style="color:var(--text-secondary);font-size:1rem;">Use the share link provided by the bar owner to view a dashboard.</div>' +
+          '</div>';
       }
     }
-    const isOwner    = (currentUid === barUid);
+  });
 
-    const barRef     = ref(db, 'bars/' + barUid);
-    const currentUrl = window.location.href.split('?')[0];
-    const viewerUrl  = currentUrl + '?bar=' + barUid;
-
-    /* hide loader */
-    loadingOverlay.style.opacity = '0';
-    setTimeout(() => loadingOverlay.style.display = 'none', 400);
+  /* ── Owner view initialisation ── */
+  function initOwnerView(barUid, barRef, viewerUrl) {
+    const isOwner = true;
 
     /* mode badge + header */
-    if (isOwner) {
-      modeBadge.innerHTML = '<span class="mode-badge badge-owner">👑 Owner Mode</span>';
-      headerSub.textContent = 'You control this dashboard';
-      roleSubtitle.textContent = 'You are the owner — share your link below';
-      editPanel.style.display = 'block';
-      shareLinkBox.style.display = 'block';
-      viewerLinkText.textContent = viewerUrl;
-      counterBtns.style.display = 'flex';
-      ownerShareBanner.style.display = 'block';
-      bannerShareUrl.value = viewerUrl;
-    } else {
-      modeBadge.innerHTML = '<span class="mode-badge badge-viewer">👁️ Viewer Mode</span>';
-      headerSub.textContent = 'Live view — waiting for owner updates…';
-      roleSubtitle.textContent = 'Viewing in read-only mode';
-      ownerShareBanner.style.display = 'none';
-    }
+    modeBadge.innerHTML = '<span class="mode-badge badge-owner">👑 Owner Mode</span>';
+    headerSub.textContent = 'You control this dashboard';
+    roleSubtitle.textContent = 'You are the owner — share the link below for viewers';
+    editPanel.style.display = 'block';
+    shareLinkBox.style.display = 'block';
+    viewerLinkText.textContent = viewerUrl;
+    counterBtns.style.display = 'flex';
+    ownerShareBanner.style.display = 'block';
+    bannerShareUrl.value = viewerUrl;
 
-    /* ── Init owner data if first visit ── */
-    if (isOwner) {
-      if (!localStorage.getItem('barOwnerUid')) {
-        localStorage.setItem('barOwnerUid', currentUid);
-        set(ref(db, 'bars/' + currentUid + '/owner'), currentUid);
-      } else {
-        localStorage.setItem('barOwnerUid', currentUid);
-      }
-    }
-
-    /* ── Realtime listener ── */
+    /* ── Realtime listener (owner) ── */
     onValue(barRef, (snap) => {
       const data = snap.val() || {};
 
       // progress
-      if (isOwner) {
-        percentInput.value = data.percent ?? 50;
-        textInput.value    = data.text    ?? '';
-      }
+      percentInput.value = data.percent ?? 50;
+      textInput.value    = data.text    ?? '';
       renderProgress(data.percent ?? 50, data.text ?? '');
 
       // countdown
       if (data.countdown) {
-        if (isOwner) countdownInput.value = data.countdown.slice(0,16);
+        countdownInput.value = data.countdown.slice(0,16);
         startCountdown(data.countdown);
       }
 
       // counter
       const counter = data.counter || { value: 0, label: 'Count' };
-      if (isOwner) {
-        counterLabelInput.value = counter.label;
-        counterValueInput.value = counter.value;
-      }
+      counterLabelInput.value = counter.label;
+      counterValueInput.value = counter.value;
       renderCounter(counter.value, counter.label);
 
       // goals
       const goals = data.goals || [];
-      if (isOwner) {
-        const rows = goalsEditList.querySelectorAll('.goal-edit-row');
-        rows.forEach((row, i) => {
-          row.querySelector('.g-label').value = (goals[i] && goals[i].label) ? goals[i].label : '';
-          row.querySelector('.g-pct').value   = (goals[i] && goals[i].percent != null) ? goals[i].percent : 0;
-        });
-      }
+      const rows = goalsEditList.querySelectorAll('.goal-edit-row');
+      rows.forEach((row, i) => {
+        row.querySelector('.g-label').value = (goals[i] && goals[i].label) ? goals[i].label : '';
+        row.querySelector('.g-pct').value   = (goals[i] && goals[i].percent != null) ? goals[i].percent : 0;
+      });
       renderGoals(goals);
 
       // status
-      if (isOwner && data.status) statusSelect.value = data.status;
+      if (data.status) statusSelect.value = data.status;
       renderStatus(data.status || 'offline');
     });
 
     /* ── Owner: update bar ── */
-    if (isOwner) {
-      updateBarBtn.addEventListener('click', () => {
-        let pct = parseInt(percentInput.value);
-        if (isNaN(pct)) pct = 0;
-        pct = Math.min(100, Math.max(0, pct));
-        const txt = textInput.value.trim() || 'Progress';
-        update(barRef, { percent: pct, text: txt })
-          .then(() => toast('✅ Bar updated!'))
-          .catch(e => toast('❌ Error: ' + e.message));
-      });
+    updateBarBtn.addEventListener('click', () => {
+      let pct = parseInt(percentInput.value);
+      if (isNaN(pct)) pct = 0;
+      pct = Math.min(100, Math.max(0, pct));
+      const txt = textInput.value.trim() || 'Progress';
+      update(barRef, { percent: pct, text: txt })
+        .then(() => toast('✅ Bar updated!'))
+        .catch(e => toast('❌ Error: ' + e.message));
+    });
 
-      updateCountdownBtn.addEventListener('click', () => {
-        const val = countdownInput.value;
-        if (!val) { toast('⚠️ Pick a date first'); return; }
-        update(barRef, { countdown: new Date(val).toISOString() })
-          .then(() => toast('✅ Countdown saved!'))
-          .catch(e => toast('❌ Error: ' + e.message));
-      });
+    updateCountdownBtn.addEventListener('click', () => {
+      const val = countdownInput.value;
+      if (!val) { toast('⚠️ Pick a date first'); return; }
+      update(barRef, { countdown: new Date(val).toISOString() })
+        .then(() => toast('✅ Countdown saved!'))
+        .catch(e => toast('❌ Error: ' + e.message));
+    });
 
-      updateCounterBtn.addEventListener('click', () => {
-        const label = counterLabelInput.value.trim() || 'Count';
-        const value = parseInt(counterValueInput.value) || 0;
-        update(barRef, { counter: { label, value } })
-          .then(() => toast('✅ Counter saved!'))
-          .catch(e => toast('❌ Error: ' + e.message));
-      });
+    updateCounterBtn.addEventListener('click', () => {
+      const label = counterLabelInput.value.trim() || 'Count';
+      const value = parseInt(counterValueInput.value) || 0;
+      update(barRef, { counter: { label, value } })
+        .then(() => toast('✅ Counter saved!'))
+        .catch(e => toast('❌ Error: ' + e.message));
+    });
 
-      updateGoalsBtn.addEventListener('click', () => {
-        const rows  = goalsEditList.querySelectorAll('.goal-edit-row');
-        const goals = [];
-        rows.forEach(row => {
-          const label = row.querySelector('.g-label').value.trim();
-          const pct   = parseInt(row.querySelector('.g-pct').value) || 0;
-          if (label) goals.push({ label, percent: Math.min(100, Math.max(0, pct)) });
+    updateGoalsBtn.addEventListener('click', () => {
+      const rows  = goalsEditList.querySelectorAll('.goal-edit-row');
+      const goals = [];
+      rows.forEach(row => {
+        const label = row.querySelector('.g-label').value.trim();
+        const pct   = parseInt(row.querySelector('.g-pct').value) || 0;
+        if (label) goals.push({ label, percent: Math.min(100, Math.max(0, pct)) });
+      });
+      update(barRef, { goals })
+        .then(() => toast('✅ Goals saved!'))
+        .catch(e => toast('❌ Error: ' + e.message));
+    });
+
+    updateStatusBtn.addEventListener('click', () => {
+      update(barRef, { status: statusSelect.value })
+        .then(() => toast('✅ Status updated!'))
+        .catch(e => toast('❌ Error: ' + e.message));
+    });
+
+    /* inline +/- counter buttons */
+    counterIncBtn.addEventListener('click', () => {
+      const cur = parseInt(counterValueEl.textContent) || 0;
+      const newVal = cur + 1;
+      update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
+        .catch(e => toast('❌ ' + e.message));
+    });
+    counterDecBtn.addEventListener('click', () => {
+      const cur = parseInt(counterValueEl.textContent) || 0;
+      const newVal = cur - 1;
+      update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
+        .catch(e => toast('❌ ' + e.message));
+    });
+
+    /* copy link */
+    copyLinkBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(viewerUrl)
+        .then(() => toast('📋 Link copied!'))
+        .catch(() => {
+          prompt('Copy this link:', viewerUrl);
         });
-        update(barRef, { goals })
-          .then(() => toast('✅ Goals saved!'))
-          .catch(e => toast('❌ Error: ' + e.message));
-      });
+    });
 
-      updateStatusBtn.addEventListener('click', () => {
-        update(barRef, { status: statusSelect.value })
-          .then(() => toast('✅ Status updated!'))
-          .catch(e => toast('❌ Error: ' + e.message));
-      });
-
-      /* inline +/- counter buttons */
-      counterIncBtn.addEventListener('click', () => {
-        const cur = parseInt(counterValueEl.textContent) || 0;
-        const newVal = cur + 1;
-        update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
-          .catch(e => toast('❌ ' + e.message));
-      });
-      counterDecBtn.addEventListener('click', () => {
-        const cur = parseInt(counterValueEl.textContent) || 0;
-        const newVal = cur - 1;
-        update(barRef, { counter: { label: counterLabelEl.textContent, value: newVal } })
-          .catch(e => toast('❌ ' + e.message));
-      });
-
-      /* copy link */
-      copyLinkBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(viewerUrl)
-          .then(() => toast('📋 Link copied!'))
-          .catch(() => {
-            prompt('Copy this link:', viewerUrl);
-          });
-      });
-
-      /* banner copy link */
-      bannerCopyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(viewerUrl)
-          .then(() => toast('📋 Link copied!'))
-          .catch(() => {
-            prompt('Copy this link:', viewerUrl);
-          });
-      });
-    }
-  });
+    /* banner copy link */
+    bannerCopyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(viewerUrl)
+        .then(() => toast('📋 Link copied!'))
+        .catch(() => {
+          prompt('Copy this link:', viewerUrl);
+        });
+    });
+  }
 
   signInAnonymously(auth).catch(err => {
     console.error('Anonymous sign-in failed:', err);

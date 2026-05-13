@@ -1,4 +1,7 @@
 {
   "buildCommand": "cp -r src/* dist/",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/owner", "destination": "/index.html" }
+  ]
 }
