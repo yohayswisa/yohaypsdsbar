@@ -1,344 +1,725 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pen</title>
-  </head>
-  <body>
-
-    <script src="./script.js"></script>
-  </body>
-</html>
-<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>בר שליטה - מערכת בעלים</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            direction: rtl;
-        }
-        .container {
-            max-width: 650px;
-            margin: 0 auto;
-        }
-        .card {
-            background: white;
-            border-radius: 30px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        }
-        .owner-card {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border: 3px solid #ff9800;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .bar-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 50px;
-            overflow: hidden;
-            margin: 20px 0;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .progress-bar {
-            width: 0%;
-            height: 60px;
-            background: linear-gradient(90deg, #4caf50, #8bc34a, #4caf50);
-            background-size: 200% 100%;
-            animation: shine 2s infinite;
-            border-radius: 50px;
-            text-align: center;
-            line-height: 60px;
-            color: white;
-            font-weight: bold;
-            font-size: 20px;
-            transition: width 0.5s ease;
-        }
-        @keyframes shine {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        .bar-text {
-            text-align: center;
-            font-size: 18px;
-            margin: 10px 0;
-            color: #555;
-        }
-        .control-group {
-            margin: 20px 0;
-        }
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #333;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 15px;
-            font-size: 16px;
-            font-family: inherit;
-        }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #4caf50;
-        }
-        button {
-            background: linear-gradient(90deg, #4caf50, #45a049);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        button:hover {
-            transform: scale(1.02);
-        }
-        .mode-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .owner-mode {
-            background: #ff9800;
-            color: white;
-        }
-        .viewer-mode {
-            background: #2196f3;
-            color: white;
-        }
-        .link-box {
-            background: #f0f0f0;
-            padding: 10px;
-            border-radius: 10px;
-            margin: 15px 0;
-            word-break: break-all;
-            font-size: 12px;
-        }
-        .status {
-            text-align: center;
-            padding: 10px;
-            border-radius: 15px;
-            margin: 15px 0;
-        }
-        .status-success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikTok Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg,#0a0a1a,#1a0a2e,#0a1a2e);
+  color:#fff;
+  min-height:100vh;
+  direction:rtl;
+  overflow-x:hidden;
+}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+.glass{
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  padding:24px;
+}
+.container{max-width:720px;margin:0 auto;padding:24px 16px}
+.widget-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+@media(max-width:600px){.widget-grid{grid-template-columns:1fr}}
+.btn{
+  background:linear-gradient(135deg,#7c3aed,#2563eb);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  padding:8px 18px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:opacity .2s;
+}
+.btn:hover{opacity:0.85}
+.btn:active{opacity:0.7}
+.input{
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px;
+  padding:8px 12px;
+  color:#fff;
+  font-size:14px;
+  outline:none;
+  width:100%;
+}
+.input:focus{border-color:#7c3aed}
+select.input{appearance:none;-webkit-appearance:none}
+label{font-size:13px;color:rgba(255,255,255,0.6);display:block;margin-bottom:4px}
+.edit-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap}
+.edit-row .input{flex:1;min-width:80px}
+.progress-bar-bg{
+  background:rgba(255,255,255,0.08);
+  border-radius:8px;
+  height:22px;
+  overflow:hidden;
+  position:relative;
+}
+.progress-bar-fill{
+  height:100%;
+  border-radius:8px;
+  background:linear-gradient(90deg,#7c3aed,#2563eb);
+  transition:width 0.6s ease;
+  width:0%;
+}
+.progress-label{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  font-weight:600;
+  z-index:1;
+}
+.countdown-display{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:32px;
+  font-weight:700;
+  text-align:center;
+  letter-spacing:2px;
+  direction:ltr;
+}
+.counter-display{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:36px;
+  font-weight:700;
+  text-align:center;
+}
+.counter-btns{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin-top:8px;
+}
+.counter-btns button{
+  width:40px;height:40px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+  font-size:20px;
+  cursor:pointer;
+  transition:background .2s;
+}
+.counter-btns button:hover{background:rgba(255,255,255,0.15)}
+.goal-row{margin-bottom:10px}
+.goal-row .progress-bar-bg{height:10px}
+.goal-label{font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:3px;display:flex;justify-content:space-between}
+.status-dot{
+  width:12px;height:12px;
+  border-radius:50%;
+  display:inline-block;
+  margin-left:8px;
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.status-text{font-size:18px;font-weight:600;display:flex;align-items:center;justify-content:center}
+
+/* Loading overlay */
+#loadingOverlay{
+  position:fixed;inset:0;
+  background:linear-gradient(135deg,#0a0a1a,#1a0a2e,#0a1a2e);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+  flex-direction:column;gap:16px;
+}
+.spinner{
+  width:40px;height:40px;
+  border:3px solid rgba(255,255,255,0.15);
+  border-top-color:#7c3aed;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Password modal */
+#passwordModal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.7);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9998;
+}
+.modal-box{
+  background:rgba(20,10,40,0.95);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:16px;
+  padding:32px;
+  max-width:360px;
+  width:90%;
+  text-align:center;
+}
+.modal-box h2{margin-bottom:16px;font-size:20px}
+.modal-box .input{margin-bottom:12px;text-align:center}
+.modal-box .btn{width:100%;padding:10px}
+#pwError{color:#f87171;font-size:13px;margin-top:8px;min-height:18px}
+
+/* Share banner */
+#ownerShareBanner{
+  background:rgba(124,58,237,0.12);
+  border:1px solid rgba(124,58,237,0.25);
+  border-radius:12px;
+  padding:14px 18px;
+  margin-bottom:18px;
+  display:flex;gap:10px;align-items:center;
+  flex-wrap:wrap;
+}
+#ownerShareBanner .input{flex:1;min-width:200px;font-size:13px}
+#ownerShareBanner label{font-size:13px;color:rgba(255,255,255,0.6);width:100%;margin-bottom:0}
+
+/* Edit panel */
+#editPanel h3{
+  font-size:16px;
+  margin-bottom:14px;
+  color:rgba(255,255,255,0.8);
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  padding-bottom:8px;
+}
+
+/* Viewer message */
+#viewerMsg{
+  text-align:center;
+  padding:60px 20px;
+  font-size:18px;
+  color:rgba(255,255,255,0.5);
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="card" id="viewerCard">
-            <div id="modeBadge"></div>
-            <h1>📊 בר התקדמות</h1>
-            <div class="subtitle" id="viewerSubtitle">מציג את הנתונים המעודכנים</div>
-            
-            <div class="bar-container">
-                <div class="progress-bar" id="progressBar">0%</div>
-            </div>
-            <div class="bar-text" id="barText">טוען...</div>
-            <div id="statusMessage"></div>
-        </div>
 
-        <div class="card owner-card" id="ownerPanel" style="display: none;">
-            <h2>🔐 פאנל שליטה - בעלים</h2>
-            <div class="control-group">
-                <label>אחוז (0-100):</label>
-                <input type="number" id="percentInput" min="0" max="100" value="50">
-            </div>
-            <div class="control-group">
-                <label>טקסט שיופיע:</label>
-                <textarea id="textInput" rows="2" placeholder="מה כתוב על הבר?"></textarea>
-            </div>
-            <button id="updateBtn">🚀 עדכן את הבר לכולם</button>
-            
-            <div class="link-box">
-                <strong>🔗 קישור לצופים:</strong><br>
-                <span id="viewerLink"></span>
-                <button id="copyLinkBtn" style="margin-top: 5px; background: #2196f3;">📋 העתק קישור</button>
-            </div>
-            <div class="link-box">
-                <strong>👑 הקישור שלך (בעלים):</strong><br>
-                <span id="ownerLink"></span>
-                <small style="display: block; margin-top: 5px;">*שמור את הקישור הזה - רק מי שפותח אותו יכול לנהל</small>
-            </div>
-        </div>
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:rgba(255,255,255,0.5)">טוען...</div>
+</div>
+
+<!-- Password Modal (owner only) -->
+<div id="passwordModal" style="display:none">
+  <div class="modal-box">
+    <h2 id="pwTitle">הגדר סיסמה</h2>
+    <input type="password" id="pwInput" class="input" placeholder="סיסמה" autocomplete="off">
+    <button id="pwBtn" class="btn">אישור</button>
+    <div id="pwError"></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Viewer "no bar" message -->
+  <div id="viewerMsg" style="display:none">
+    <p>🔒 השתמש בקישור שיתוף כדי לצפות בבר</p>
+  </div>
+
+  <!-- Owner share banner -->
+  <div id="ownerShareBanner" style="display:none">
+    <label>קישור שיתוף לצופים</label>
+    <input type="text" id="shareUrl" class="input" readonly>
+    <button id="copyShareBtn" class="btn" style="padding:8px 14px;font-size:13px">העתק</button>
+  </div>
+
+  <!-- Edit Panel (owner only) -->
+  <div id="editPanel" class="glass" style="display:none;margin-bottom:20px">
+    <h3>עריכת בר</h3>
+
+    <!-- Progress -->
+    <div class="edit-row">
+      <div style="flex:1">
+        <label>אחוז התקדמות</label>
+        <input type="number" id="editPercent" class="input" min="0" max="100" value="0">
+      </div>
+      <div style="flex:1">
+        <label>טקסט</label>
+        <input type="text" id="editPercentText" class="input" placeholder="טקסט מתחת לפס">
+      </div>
+      <button class="btn" id="saveProgressBtn">שמור</button>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-analytics.js";
+    <!-- Countdown -->
+    <div class="edit-row">
+      <div style="flex:1">
+        <label>ספירה לאחור</label>
+        <input type="datetime-local" id="editCountdown" class="input">
+      </div>
+      <button class="btn" id="saveCountdownBtn">שמור</button>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
-            authDomain: "tiktok-bar-26335.firebaseapp.com",
-            projectId: "tiktok-bar-26335",
-            storageBucket: "tiktok-bar-26335.firebasestorage.app",
-            messagingSenderId: "418257627680",
-            appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45",
-            measurementId: "G-2549WJGSTH"
-        };
+    <!-- Counter -->
+    <div class="edit-row">
+      <div style="flex:1">
+        <label>שם מונה</label>
+        <input type="text" id="editCounterLabel" class="input" placeholder="מונה">
+      </div>
+      <div style="flex:1">
+        <label>ערך</label>
+        <input type="number" id="editCounterValue" class="input" value="0">
+      </div>
+      <button class="btn" id="saveCounterBtn">שמור</button>
+    </div>
 
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const db = getDatabase(app);
-        const barRef = ref(db, 'barData');
+    <!-- Goals -->
+    <div id="editGoals" style="margin-bottom:14px">
+      <label style="margin-bottom:8px">יעדים</label>
+      <div class="edit-row" id="goal0">
+        <input type="text" class="input goal-label-input" placeholder="שם יעד 1" style="flex:2">
+        <input type="number" class="input goal-pct-input" placeholder="%" min="0" max="100" style="flex:1">
+      </div>
+      <div class="edit-row" id="goal1">
+        <input type="text" class="input goal-label-input" placeholder="שם יעד 2" style="flex:2">
+        <input type="number" class="input goal-pct-input" placeholder="%" min="0" max="100" style="flex:1">
+      </div>
+      <div class="edit-row" id="goal2">
+        <input type="text" class="input goal-label-input" placeholder="שם יעד 3" style="flex:2">
+        <input type="number" class="input goal-pct-input" placeholder="%" min="0" max="100" style="flex:1">
+      </div>
+      <div class="edit-row" id="goal3">
+        <input type="text" class="input goal-label-input" placeholder="שם יעד 4" style="flex:2">
+        <input type="number" class="input goal-pct-input" placeholder="%" min="0" max="100" style="flex:1">
+      </div>
+      <button class="btn" id="saveGoalsBtn">שמור יעדים</button>
+    </div>
 
-        // זיהוי אם המשתמש הוא הבעלים (לפי URL)
-        const urlParams = new URLSearchParams(window.location.search);
-        const isOwner = urlParams.get('owner') === 'true';
-        
-        const viewerCard = document.getElementById('viewerCard');
-        const ownerPanel = document.getElementById('ownerPanel');
-        const modeBadge = document.getElementById('modeBadge');
-        const viewerSubtitle = document.getElementById('viewerSubtitle');
-        const progressBar = document.getElementById('progressBar');
-        const barText = document.getElementById('barText');
-        const statusMessage = document.getElementById('statusMessage');
-        const percentInput = document.getElementById('percentInput');
-        const textInput = document.getElementById('textInput');
-        const updateBtn = document.getElementById('updateBtn');
-        const viewerLinkSpan = document.getElementById('viewerLink');
-        const copyLinkBtn = document.getElementById('copyLinkBtn');
-        
-        const currentUrl = window.location.href.split('?')[0];
-        const viewerUrl = currentUrl;
-        const ownerUrl = currentUrl + '?owner=true';
-        
-        if (viewerLinkSpan) viewerLinkSpan.textContent = viewerUrl;
-        
-        // הצגת קישור בעלים
-        const ownerLinkSpan = document.getElementById('ownerLink');
-        if (ownerLinkSpan) ownerLinkSpan.textContent = ownerUrl;
-        
-        // מצב בעלים
-        if (isOwner) {
-            modeBadge.innerHTML = '<span class="mode-badge owner-mode">👑 מצב בעלים - יש לך שליטה מלאה</span>';
-            viewerSubtitle.textContent = '🔧 אתה הבעלים - תוכל לערוך את הבר למטה';
-            ownerPanel.style.display = 'block';
-            
-            // טעינת נתונים קיימים
-            onValue(barRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    percentInput.value = data.percent || 50;
-                    textInput.value = data.text || '';
-                    updateDisplay(data.percent || 50, data.text || '');
-                } else {
-                    // נתונים ראשוניים
-                    set(barRef, { percent: 50, text: 'בר מצב רוח' });
-                    updateDisplay(50, 'בר מצב רוח');
-                }
-            });
-            
-            // עדכון ידני
-            updateBtn.addEventListener('click', () => {
-                let percent = parseInt(percentInput.value);
-                if (isNaN(percent)) percent = 0;
-                percent = Math.min(100, Math.max(0, percent));
-                const text = textInput.value || 'התקדמות';
-                
-                set(barRef, { percent: percent, text: text })
-                    .then(() => {
-                        showStatus('✅ עודכן בהצלחה! כל הצופים רואים את השינוי', 'success');
-                        updateDisplay(percent, text);
-                    })
-                    .catch((error) => {
-                        showStatus('❌ שגיאה בעדכון: ' + error.message, 'error');
-                    });
-            });
-        } else {
-            // מצב צופה רגיל
-            modeBadge.innerHTML = '<span class="mode-badge viewer-mode">👁️ מצב צופה - צופה בבר המעודכן</span>';
-            viewerSubtitle.textContent = 'ממתין לעדכונים מהבעלים...';
-            
-            onValue(barRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    updateDisplay(data.percent || 0, data.text || '');
-                    showStatus('🔄 התקבל עדכון חדש מהבעלים!', 'success');
-                    setTimeout(() => {
-                        const statusDiv = document.getElementById('statusMessage');
-                        if (statusDiv) statusDiv.style.display = 'none';
-                    }, 2000);
-                } else {
-                    updateDisplay(0, 'ממתין לנתונים...');
-                }
-            });
-        }
-        
-        function updateDisplay(percent, text) {
-            const displayPercent = percent || 0;
-            progressBar.style.width = displayPercent + '%';
-            progressBar.textContent = displayPercent + '%';
-            if (text) {
-                barText.textContent = text;
+    <!-- Status -->
+    <div class="edit-row">
+      <div style="flex:1">
+        <label>סטטוס</label>
+        <select id="editStatus" class="input">
+          <option value="online">🟢 אונליין</option>
+          <option value="busy">🟡 עסוק</option>
+          <option value="offline">🔴 לא מקוון</option>
+        </select>
+      </div>
+      <button class="btn" id="saveStatusBtn">שמור</button>
+    </div>
+  </div>
+
+  <!-- Display Widgets -->
+  <div id="widgetsGrid" class="widget-grid" style="display:none">
+
+    <!-- Progress Widget -->
+    <div class="glass" id="progressWidget">
+      <h3 style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:10px">התקדמות</h3>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressFill"></div>
+        <div class="progress-label" id="progressLabel">0%</div>
+      </div>
+      <div id="progressText" style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:center"></div>
+    </div>
+
+    <!-- Countdown Widget -->
+    <div class="glass" id="countdownWidget">
+      <h3 style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:10px">ספירה לאחור</h3>
+      <div class="countdown-display" id="countdownDisplay">--:--:--:--</div>
+    </div>
+
+    <!-- Counter Widget -->
+    <div class="glass" id="counterWidget">
+      <h3 id="counterLabel" style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:6px">מונה</h3>
+      <div class="counter-display" id="counterDisplay">0</div>
+      <div class="counter-btns" id="counterBtns" style="display:none">
+        <button id="counterMinus">−</button>
+        <button id="counterPlus">+</button>
+      </div>
+    </div>
+
+    <!-- Goals Widget -->
+    <div class="glass" id="goalsWidget">
+      <h3 style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:10px">יעדים</h3>
+      <div id="goalsDisplay"></div>
+    </div>
+
+    <!-- Status Widget -->
+    <div class="glass" id="statusWidget">
+      <h3 style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:10px">סטטוס</h3>
+      <div class="status-text">
+        <span class="status-dot" id="statusDot" style="background:#22c55e"></span>
+        <span id="statusLabel">אונליין</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+
+  /* ── Firebase Init ── */
+  var firebaseConfig = {
+    apiKey: "AIzaSyCktwUnVUswLw5ojZH53QEHUOkXbVlmbv0",
+    authDomain: "tiktok-bar-26335.firebaseapp.com",
+    projectId: "tiktok-bar-26335",
+    storageBucket: "tiktok-bar-26335.firebasestorage.app",
+    messagingSenderId: "418257627680",
+    appId: "1:418257627680:web:4fbf9a1fd841a14e7eea45"
+  };
+
+  var app = firebase.initializeApp(firebaseConfig);
+  var db = firebase.database();
+  var auth = firebase.auth();
+
+  /* ── State ── */
+  var isOwnerRoute = window.location.pathname.indexOf('/owner') !== -1;
+  var currentUid = null;
+  var barListenerRef = null;
+  var countdownInterval = null;
+  var currentBarData = {};
+
+  /* ── Helpers ── */
+  function $(id) { return document.getElementById(id); }
+
+  function hashPw(pw) {
+    var encoder = new TextEncoder();
+    return crypto.subtle.digest('SHA-256', encoder.encode(pw)).then(function(buf) {
+      return Array.from(new Uint8Array(buf)).map(function(b) {
+        return b.toString(16).padStart(2, '0');
+      }).join('');
+    });
+  }
+
+  function animateNum(el, from, to, suffix, duration) {
+    suffix = suffix || '';
+    duration = duration || 400;
+    var start = performance.now();
+    function step(now) {
+      var t = Math.min((now - start) / duration, 1);
+      t = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(from + (to - from) * t) + suffix;
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function hideLoading() {
+    var el = $('loadingOverlay');
+    if (el) el.style.display = 'none';
+  }
+
+  /* ── Auth ── */
+  auth.signInAnonymously().catch(function(err) {
+    console.error('Auth error:', err);
+    hideLoading();
+  });
+
+  auth.onAuthStateChanged(function(user) {
+    if (!user) return;
+    var uid = user.uid;
+    currentUid = uid;
+
+    if (isOwnerRoute) {
+      initOwner(uid);
+    } else {
+      initViewer(uid);
+    }
+  });
+
+  /* ── Owner Flow ── */
+  function initOwner(uid) {
+    db.ref('bars/' + uid + '/passwordHash').once('value').then(function(snap) {
+      var existing = snap.val();
+      if (existing) {
+        showPwModal('הזן סיסמה', function(pw) {
+          hashPw(pw).then(function(h) {
+            if (h === existing) {
+              hidePwModal();
+              showOwnerUI(uid);
             } else {
-                barText.textContent = 'התקדמות: ' + displayPercent + '%';
+              $('pwError').textContent = 'סיסמה שגויה';
             }
-        }
-        
-        function showStatus(msg, type) {
-            statusMessage.innerHTML = `<div class="status status-${type === 'success' ? 'success' : 'error'}">${msg}</div>`;
-            setTimeout(() => {
-                if (statusMessage.innerHTML.includes(msg)) {
-                    statusMessage.innerHTML = '';
-                }
-            }, 3000);
-        }
-        
-        // העתקת קישור
-        if (copyLinkBtn) {
-            copyLinkBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(viewerUrl);
-                alert('📋 הקישור הועתק! שלח אותו לכל מי שרוצה לראות את הבר');
+          });
+        });
+      } else {
+        showPwModal('הגדר סיסמה חדשה', function(pw) {
+          if (pw.length < 1) {
+            $('pwError').textContent = 'הזן סיסמה';
+            return;
+          }
+          hashPw(pw).then(function(h) {
+            db.ref('bars/' + uid + '/passwordHash').set(h).then(function() {
+              hidePwModal();
+              showOwnerUI(uid);
+            }).catch(function(e) {
+              $('pwError').textContent = 'שגיאת שמירה';
+              console.error(e);
             });
+          });
+        });
+      }
+    }).catch(function(e) {
+      console.error('DB read error:', e);
+      hideLoading();
+    });
+  }
+
+  var pwCallback = null;
+
+  function showPwModal(title, cb) {
+    $('pwTitle').textContent = title;
+    $('pwInput').value = '';
+    $('pwError').textContent = '';
+    $('passwordModal').style.display = 'flex';
+    pwCallback = cb;
+  }
+
+  function hidePwModal() {
+    $('passwordModal').style.display = 'none';
+    pwCallback = null;
+  }
+
+  $('pwBtn').addEventListener('click', function() {
+    var pw = $('pwInput').value;
+    if (pwCallback) pwCallback(pw);
+  });
+
+  $('pwInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      var pw = $('pwInput').value;
+      if (pwCallback) pwCallback(pw);
+    }
+  });
+
+  function showOwnerUI(uid) {
+    hideLoading();
+
+    /* Show owner elements */
+    $('ownerShareBanner').style.display = 'flex';
+    $('editPanel').style.display = 'block';
+    $('widgetsGrid').style.display = 'grid';
+    $('counterBtns').style.display = 'flex';
+
+    /* Share URL */
+    var shareUrl = window.location.origin + window.location.pathname.replace('/owner', '') + '?bar=' + uid;
+    $('shareUrl').value = shareUrl;
+
+    /* Start listening */
+    startBarListener(uid);
+    setupOwnerHandlers(uid);
+  }
+
+  /* ── Viewer Flow ── */
+  function initViewer() {
+    var params = new URLSearchParams(window.location.search);
+    var barId = params.get('bar');
+
+    if (!barId) {
+      hideLoading();
+      $('viewerMsg').style.display = 'block';
+      return;
+    }
+
+    hideLoading();
+    $('widgetsGrid').style.display = 'grid';
+    startBarListener(barId);
+  }
+
+  /* ── Bar Listener ── */
+  function startBarListener(uid) {
+    if (barListenerRef) {
+      db.ref('bars/' + barListenerRef).off();
+    }
+    barListenerRef = uid;
+
+    db.ref('bars/' + uid).on('value', function(snap) {
+      var data = snap.val();
+      if (!data) {
+        /* Initialize default bar for owner */
+        if (isOwnerRoute && currentUid === uid) {
+          db.ref('bars/' + uid).set({
+            percent: 0,
+            percentText: '',
+            countdownTarget: '',
+            counterLabel: 'מונה',
+            counterValue: 0,
+            goals: [],
+            status: 'online'
+          });
         }
-        
-        // הודעה ראשונית
-        if (!isOwner) {
-            setTimeout(() => {
-                showStatus('💡 ממתין לעדכונים מהבעלים... ההגדרות הראשונות יופיעו בקרוב', 'success');
-            }, 1000);
+        return;
+      }
+      currentBarData = data;
+      renderWidgets(data);
+    }, function(err) {
+      console.error('Listener error:', err);
+    });
+  }
+
+  /* ── Render Widgets ── */
+  function renderWidgets(data) {
+    /* Progress */
+    var pct = data.percent || 0;
+    $('progressFill').style.width = pct + '%';
+    $('progressLabel').textContent = pct + '%';
+    $('progressText').textContent = data.percentText || '';
+
+    /* Countdown */
+    var target = data.countdownTarget;
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    if (target) {
+      updateCountdown(target);
+      countdownInterval = setInterval(function() { updateCountdown(target); }, 1000);
+    } else {
+      $('countdownDisplay').textContent = '--:--:--:--';
+    }
+
+    /* Counter */
+    var cv = data.counterValue || 0;
+    var oldVal = parseInt($('counterDisplay').textContent) || 0;
+    if (oldVal !== cv) animateNum($('counterDisplay'), oldVal, cv);
+    $('counterLabel').textContent = data.counterLabel || 'מונה';
+
+    /* Goals */
+    var goals = data.goals || [];
+    var goalsHtml = '';
+    for (var i = 0; i < goals.length; i++) {
+      var g = goals[i];
+      if (!g || !g.label) continue;
+      var gp = g.percent || 0;
+      goalsHtml += '<div class="goal-row">' +
+        '<div class="goal-label"><span>' + escapeHtml(g.label) + '</span><span>' + gp + '%</span></div>' +
+        '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:' + gp + '%"></div></div>' +
+        '</div>';
+    }
+    $('goalsDisplay').innerHTML = goalsHtml || '<div style="color:rgba(255,255,255,0.3);font-size:13px">אין יעדים</div>';
+
+    /* Status */
+    var statusColors = { online: '#22c55e', busy: '#eab308', offline: '#ef4444' };
+    var statusLabels = { online: 'אונליין', busy: 'עסוק', offline: 'לא מקוון' };
+    var s = data.status || 'online';
+    $('statusDot').style.background = statusColors[s] || '#22c55e';
+    $('statusLabel').textContent = statusLabels[s] || 'אונליין';
+
+    /* Update edit panel if owner */
+    if (isOwnerRoute) {
+      $('editPercent').value = pct;
+      $('editPercentText').value = data.percentText || '';
+      $('editCounterLabel').value = data.counterLabel || 'מונה';
+      $('editCounterValue').value = cv;
+      $('editStatus').value = s;
+
+      /* Goals edit */
+      var goalLabelInputs = document.querySelectorAll('.goal-label-input');
+      var goalPctInputs = document.querySelectorAll('.goal-pct-input');
+      for (var j = 0; j < 4; j++) {
+        var gl = (goals && goals[j] && goals[j].label) || '';
+        var gp2 = (goals && goals[j] && goals[j].percent) || 0;
+        if (goalLabelInputs[j]) goalLabelInputs[j].value = gl;
+        if (goalPctInputs[j]) goalPctInputs[j].value = gp2;
+      }
+    }
+  }
+
+  function updateCountdown(target) {
+    var diff = new Date(target).getTime() - Date.now();
+    var el = $('countdownDisplay');
+    if (diff <= 0) {
+      el.textContent = '00:00:00:00';
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+      return;
+    }
+    var d = Math.floor(diff / 86400000);
+    var h = Math.floor((diff % 86400000) / 3600000);
+    var m = Math.floor((diff % 3600000) / 60000);
+    var s2 = Math.floor((diff % 60000) / 1000);
+    el.textContent = pad(d) + ':' + pad(h) + ':' + pad(m) + ':' + pad(s2);
+  }
+
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  /* ── Owner Handlers ── */
+  function setupOwnerHandlers(uid) {
+    var barRef = db.ref('bars/' + uid);
+
+    /* Copy share link */
+    $('copyShareBtn').addEventListener('click', function() {
+      var url = $('shareUrl').value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+          $('copyShareBtn').textContent = '✓ הועתק';
+          setTimeout(function() { $('copyShareBtn').textContent = 'העתק'; }, 1500);
+        });
+      } else {
+        $('shareUrl').select();
+        document.execCommand('copy');
+        $('copyShareBtn').textContent = '✓ הועתק';
+        setTimeout(function() { $('copyShareBtn').textContent = 'העתק'; }, 1500);
+      }
+    });
+
+    /* Save progress */
+    $('saveProgressBtn').addEventListener('click', function() {
+      var p = parseInt($('editPercent').value) || 0;
+      p = Math.max(0, Math.min(100, p));
+      barRef.update({ percent: p, percentText: $('editPercentText').value || '' });
+    });
+
+    /* Save countdown */
+    $('saveCountdownBtn').addEventListener('click', function() {
+      barRef.update({ countdownTarget: $('editCountdown').value || '' });
+    });
+
+    /* Save counter */
+    $('saveCounterBtn').addEventListener('click', function() {
+      barRef.update({
+        counterLabel: $('editCounterLabel').value || 'מונה',
+        counterValue: parseInt($('editCounterValue').value) || 0
+      });
+    });
+
+    /* Save goals */
+    $('saveGoalsBtn').addEventListener('click', function() {
+      var goals = [];
+      var goalLabelInputs = document.querySelectorAll('.goal-label-input');
+      var goalPctInputs = document.querySelectorAll('.goal-pct-input');
+      for (var i = 0; i < 4; i++) {
+        var lbl = goalLabelInputs[i] ? goalLabelInputs[i].value.trim() : '';
+        var pctVal = goalPctInputs[i] ? parseInt(goalPctInputs[i].value) || 0 : 0;
+        if (lbl) {
+          goals.push({ label: lbl, percent: Math.max(0, Math.min(100, pctVal)) });
         }
-    </script>
+      }
+      barRef.update({ goals: goals });
+    });
+
+    /* Save status */
+    $('saveStatusBtn').addEventListener('click', function() {
+      barRef.update({ status: $('editStatus').value || 'online' });
+    });
+
+    /* Counter +/- */
+    $('counterPlus').addEventListener('click', function() {
+      var v = (currentBarData.counterValue || 0) + 1;
+      db.ref('bars/' + uid + '/counterValue').set(v);
+    });
+    $('counterMinus').addEventListener('click', function() {
+      var v = (currentBarData.counterValue || 0) - 1;
+      db.ref('bars/' + uid + '/counterValue').set(v);
+    });
+  }
+
+})();
+</script>
+
+<!-- Fallback: force-hide loading after 5s -->
+<script>setTimeout(function(){var l=document.getElementById('loadingOverlay');if(l&&l.style.display!=='none'){l.style.display='none';}},5000);</script>
+
 </body>
 </html>
